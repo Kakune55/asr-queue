@@ -206,6 +206,33 @@ class PriorityQueue:
             ))
         return recent_tasks
 
+    def get_processing_tasks(self) -> List[Task]:
+        """获取所有'processing'状态的任务列表。"""
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM tasks WHERE status = ?",
+            (TaskStatus.PROCESSING.value,)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        
+        processing_tasks = []
+        for row in rows:
+            processing_tasks.append(Task(
+                id=row['id'],
+                audio_filepath=row['audio_filepath'],
+                priority=row['priority'],
+                status=TaskStatus(row['status']),
+                created_at=datetime.fromisoformat(row['created_at']),
+                updated_at=datetime.fromisoformat(row['updated_at']) if row['updated_at'] else None,
+                result=row['result'],
+                waiting_time=row['waiting_time'],
+                processing_time=row['processing_time']
+            ))
+        return processing_tasks
+
 # 示例用法
 if __name__ == '__main__':
     print("--- PriorityQueue Test ---")

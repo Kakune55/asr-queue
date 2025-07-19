@@ -86,9 +86,23 @@ async def broadcast_queue_status():
                 "result_display": result_display # 使用截断后的结果
             })
 
+        # 获取正在处理中的任务列表
+        processing_tasks_data = []
+        for task in asr_queue.get_processing_tasks():
+            # 正在处理中的任务，result_display可以显示为"处理中..."或者不显示
+            processing_tasks_data.append({
+                "id": task.id,
+                "priority": task.priority,
+                "status": task.status.value,
+                "waiting_time": task.waiting_time,
+                "processing_time": task.processing_time,
+                "result_display": "处理中..." # 正在处理中的任务，结果显示为“处理中...”
+            })
+
         status = {
             "queue_size": asr_queue.size,
             "pending_tasks": tasks_snapshot,
+            "processing_tasks": processing_tasks_data, # 新增
             "recent_tasks": recent_tasks_data
         }
         # 广播JSON格式的状态信息

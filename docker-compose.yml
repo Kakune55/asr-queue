@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - asr_queue_data:/app/asr_queue.db
+      - audio_files_data:/app/audio_files
+    # 如果需要GPU支持，可以取消注释以下行，并确保主机有NVIDIA GPU和Docker Compose支持
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  asr_queue_data:
+  audio_files_data:

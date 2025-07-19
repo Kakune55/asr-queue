@@ -34,7 +34,7 @@ class ASRWorker(threading.Thread):
             vad_model="fsmn-vad",
             vad_kwargs={"max_single_segment_time": 30000},
             device="cpu",  # 使用GPU进行推理
-            # runtime="onnx", # 使用ONNX Runtime以获得更好的性能
+            runtime="onnx", # 使用ONNX Runtime以获得更好的性能
         )
         print("ASR模型初始化完成。")
 

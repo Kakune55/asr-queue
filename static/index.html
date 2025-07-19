@@ -33,6 +33,9 @@
             <h3>待处理任务列表</h3>
             <ul id="pending-tasks"></ul>
 
+            <h2>正在处理中的任务</h2>
+            <ul id="processing-tasks"></ul>
+
             <h2>最近处理任务</h2>
             <ul id="recent-tasks"></ul>
         </div>
@@ -49,6 +52,7 @@
         <script>
             const queueSizeElement = document.getElementById("queue-size");
             const pendingTasksListElement = document.getElementById("pending-tasks");
+            const processingTasksListElement = document.getElementById("processing-tasks"); // 新增
             const recentTasksListElement = document.getElementById("recent-tasks");
             const modal = document.getElementById("task-details-modal");
             const modalDetailsElement = document.getElementById("modal-task-details");
@@ -78,6 +82,24 @@
                     const li = document.createElement("li");
                     li.textContent = `任务ID: ${task.id} | 优先级: ${task.priority}`;
                     pendingTasksListElement.appendChild(li);
+                });
+
+                // 更新正在处理中的任务列表 (新增)
+                processingTasksListElement.innerHTML = '';
+                data.processing_tasks.forEach(function(task) {
+                    const li = document.createElement("li");
+                    li.classList.add('task-item');
+                    let statusClass = 'status-processing'; // 正在处理中的任务状态固定为processing
+                    
+                    li.innerHTML = `
+                        任务ID: ${task.id} <br>
+                        优先级: ${task.priority} <br>
+                        状态: <span class="task-status ${statusClass}">${task.status}</span> <br>
+                        等待时间: ${task.waiting_time ? task.waiting_time.toFixed(2) + 's' : 'N/A'} <br>
+                        处理时间: ${task.processing_time ? task.processing_time.toFixed(2) + 's' : 'N/A'} <br>
+                        结果: ${task.result_display || 'N/A'}
+                    `;
+                    processingTasksListElement.appendChild(li);
                 });
 
                 // 更新最近处理任务列表
