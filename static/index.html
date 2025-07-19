@@ -144,6 +144,26 @@
         <h1>ASR服务监控面板</h1>
         <h2>队列状态</h2>
         <p>当前排队任务数: <strong id="queue-size">0</strong></p>
+        
+        <h2>系统统计</h2>
+        <div id="statistics" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <div class="stat-card" style="flex: 1; background: #f0f0f0; padding: 15px; margin: 0 5px; border-radius: 8px; text-align: center;">
+                <h3>最近5分钟</h3>
+                <p>平均等待: <span id="wait-5">0.00s</span></p>
+                <p>平均负载: <span id="load-5">0%</span></p>
+            </div>
+            <div class="stat-card" style="flex: 1; background: #f0f0f0; padding: 15px; margin: 0 5px; border-radius: 8px; text-align: center;">
+                <h3>最近15分钟</h3>
+                <p>平均等待: <span id="wait-15">0.00s</span></p>
+                <p>平均负载: <span id="load-15">0%</span></p>
+            </div>
+            <div class="stat-card" style="flex: 1; background: #f0f0f0; padding: 15px; margin: 0 5px; border-radius: 8px; text-align: center;">
+                <h3>最近45分钟</h3>
+                <p>平均等待: <span id="wait-45">0.00s</span></p>
+                <p>平均负载: <span id="load-45">0%</span></p>
+            </div>
+        </div>
+        
         <h3>待处理任务列表</h3>
         <table id="pending-tasks">
             <thead>
@@ -298,6 +318,28 @@
         ws.onerror = function (error) {
             console.error("WebSocket 错误: ", error);
         };
+        
+        // 定期获取统计数据
+        async function fetchStatistics() {
+            try {
+                const response = await fetch('/api/statistics');
+                const stats = await response.json();
+                
+                for (const [key, value] of Object.entries(stats)) {
+                    const interval = key.split('_')[1];
+                    document.getElementById(`wait-${interval}`).textContent =
+                        `${value.avg_waiting_time}s`;
+                    document.getElementById(`load-${interval}`).textContent =
+                        `${value.avg_load_percent}%`;
+                }
+            } catch (error) {
+                console.error('获取统计数据失败:', error);
+            }
+        }
+
+        // 每30秒更新一次
+        setInterval(fetchStatistics, 30000);
+        fetchStatistics(); // 初始加载
     </script>
 </body>
 

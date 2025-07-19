@@ -65,7 +65,7 @@ async def broadcast_queue_status():
     """定期向所有后台前端广播队列状态"""
     while True:
         # 获取队列中任务的快照信息，用于前端展示
-        tasks_snapshot = [{"id": t[2], "priority": t[0]} for t in asr_queue._queue]
+        tasks_snapshot = [{"id": t[2], "priority": -t[0]} for t in asr_queue._queue] # 负号反转优先级
         # 获取最近处理的任务列表
         recent_tasks_data = []
         for task in asr_queue.get_recent_tasks(limit=10): # 获取最近10个任务

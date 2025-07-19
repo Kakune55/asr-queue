@@ -1,5 +1,6 @@
 import sys
 import os
+
 # 将项目根目录添加到Python路径中，以解决模块导入问题
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -18,6 +19,7 @@ AUDIO_STORAGE_DIR = "audio_files"
 if not os.path.exists(AUDIO_STORAGE_DIR):
     os.makedirs(AUDIO_STORAGE_DIR)
 
+
 class PriorityQueue:
     """
     一个持久化的、线程安全的优先级队列。
@@ -25,7 +27,8 @@ class PriorityQueue:
     - 使用SQLite进行任务的持久化存储。
     - 在启动时会从数据库加载未完成的任务。
     """
-    def __init__(self, db_path='asr_queue.db'):
+
+    def __init__(self, db_path="asr_queue.db"):
         self.db_path = db_path
         self._queue = []  # 内存中的优先队列 (priority, created_at, task_id)
         self._lock = threading.Lock()  # 线程锁，确保多线程操作安全
@@ -38,7 +41,9 @@ class PriorityQueue:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             # 选取需要恢复的任务
-            cursor.execute("SELECT id, priority, created_at FROM tasks WHERE status IN ('pending', 'processing')")
+            cursor.execute(
+                "SELECT id, priority, created_at FROM tasks WHERE status IN ('pending', 'processing')"
+            )
             for row in cursor.fetchall():
                 task_id, priority, created_at_str = row
                 created_at = datetime.fromisoformat(created_at_str)
@@ -48,7 +53,7 @@ class PriorityQueue:
             conn.close()
             print(f"从数据库加载了 {len(self._queue)} 个待处理任务。")
 
-    def push(self, audio_filepath: str, priority: int) -> str: # 更改为audio_filepath
+    def push(self, audio_filepath: str, priority: int) -> str:  # 更改为audio_filepath
         """
         向队列中添加一个新任务，并将其持久化到数据库。
         返回任务的唯一ID。
@@ -56,13 +61,19 @@ class PriorityQueue:
         with self._lock:
             task_id = str(uuid.uuid4())
             created_at = datetime.now()
-            
+
             # 1. 持久化到数据库
             conn = sqlite3.connect(self.db_path, check_same_thread=False)
             cursor = conn.cursor()
             cursor.execute(
                 "INSERT INTO tasks (id, audio_filepath, priority, status, created_at) VALUES (?, ?, ?, ?, ?)",
-                (task_id, audio_filepath, priority, TaskStatus.PENDING.value, created_at)
+                (
+                    task_id,
+                    audio_filepath,
+                    priority,
+                    TaskStatus.PENDING.value,
+                    created_at,
+                ),
             )
             conn.commit()
             conn.close()
@@ -79,18 +90,21 @@ class PriorityQueue:
         with self._lock:
             if not self._queue:
                 return None
-            
+
             priority, created_at, task_id = heapq.heappop(self._queue)
-            
+
             # 更新数据库中的任务状态
             conn = sqlite3.connect(self.db_path, check_same_thread=False)
             cursor = conn.cursor()
             # 计算等待时间
             waiting_time = (datetime.now() - created_at).total_seconds()
-            cursor.execute("UPDATE tasks SET status = ?, waiting_time = ? WHERE id = ?", (TaskStatus.PROCESSING.value, waiting_time, task_id))
+            cursor.execute(
+                "UPDATE tasks SET status = ?, waiting_time = ? WHERE id = ?",
+                (TaskStatus.PROCESSING.value, waiting_time, task_id),
+            )
             conn.commit()
             conn.close()
-            
+
             return task_id
 
     def get_task(self, task_id: str) -> Optional[Task]:
@@ -101,29 +115,37 @@ class PriorityQueue:
         cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
         row = cursor.fetchone()
         conn.close()
-        
+
         if row:
             # 将数据库行数据转换为Task数据类实例
             return Task(
-                id=row['id'],
-                audio_filepath=row['audio_filepath'],
-                priority=row['priority'],
-                status=TaskStatus(row['status']),
-                created_at=datetime.fromisoformat(row['created_at']),
-                updated_at=datetime.fromisoformat(row['updated_at']) if row['updated_at'] else None,
-                result=row['result'],
-                waiting_time=row['waiting_time'],
-                processing_time=row['processing_time']
+                id=row["id"],
+                audio_filepath=row["audio_filepath"],
+                priority=row["priority"],
+                status=TaskStatus(row["status"]),
+                created_at=datetime.fromisoformat(row["created_at"]),
+                updated_at=(
+                    datetime.fromisoformat(row["updated_at"])
+                    if row["updated_at"]
+                    else None
+                ),
+                result=row["result"],
+                waiting_time=row["waiting_time"],
+                processing_time=row["processing_time"],
             )
         return None
 
-    def update_task_status(self, task_id: str, status: TaskStatus, result: Optional[str] = None):
+    def update_task_status(
+        self, task_id: str, status: TaskStatus, result: Optional[str] = None
+    ):
         """更新指定任务的状态和结果。"""
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         cursor = conn.cursor()
-        
+
         # 获取任务的创建时间或更新时间，用于计算处理时间
-        cursor.execute("SELECT created_at, updated_at FROM tasks WHERE id = ?", (task_id,))
+        cursor.execute(
+            "SELECT created_at, updated_at FROM tasks WHERE id = ?", (task_id,)
+        )
         row = cursor.fetchone()
         processing_time = None
         if row:
@@ -135,7 +157,7 @@ class PriorityQueue:
 
         cursor.execute(
             "UPDATE tasks SET status = ?, result = ?, updated_at = ?, processing_time = ? WHERE id = ?",
-            (status.value, result, datetime.now(), processing_time, task_id)
+            (status.value, result, datetime.now(), processing_time, task_id),
         )
         conn.commit()
         conn.close()
@@ -149,7 +171,7 @@ class PriorityQueue:
             # 获取需要清理的旧任务的文件路径
             cursor.execute(
                 "SELECT audio_filepath FROM tasks WHERE status IN (?, ?) AND created_at < ? AND audio_filepath IS NOT NULL",
-                (TaskStatus.COMPLETED.value, TaskStatus.FAILED.value, cleanup_time)
+                (TaskStatus.COMPLETED.value, TaskStatus.FAILED.value, cleanup_time),
             )
             filepaths_to_delete = [row[0] for row in cursor.fetchall()]
 
@@ -158,11 +180,11 @@ class PriorityQueue:
                 if os.path.exists(filepath):
                     os.remove(filepath)
                     print(f"文件清理：删除了旧音频文件 {filepath}")
-            
+
             # 将数据库中的audio_filepath字段设置为空
             cursor.execute(
                 "UPDATE tasks SET audio_filepath = NULL WHERE status IN (?, ?) AND created_at < ? AND audio_filepath IS NOT NULL",
-                (TaskStatus.COMPLETED.value, TaskStatus.FAILED.value, cleanup_time)
+                (TaskStatus.COMPLETED.value, TaskStatus.FAILED.value, cleanup_time),
             )
             count = cursor.rowcount
             conn.commit()
@@ -171,7 +193,6 @@ class PriorityQueue:
                 print(f"数据库清理：清除了 {count} 个旧任务的音频文件路径。")
         except Exception as e:
             print(f"数据库清理时出错: {e}")
-
 
     @property
     def size(self):
@@ -186,24 +207,30 @@ class PriorityQueue:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT * FROM tasks WHERE status IN (?, ?) ORDER BY updated_at DESC LIMIT ?",
-            (TaskStatus.COMPLETED.value, TaskStatus.FAILED.value, limit)
+            (TaskStatus.COMPLETED.value, TaskStatus.FAILED.value, limit),
         )
         rows = cursor.fetchall()
         conn.close()
-        
+
         recent_tasks = []
         for row in rows:
-            recent_tasks.append(Task(
-                id=row['id'],
-                audio_filepath=row['audio_filepath'],
-                priority=row['priority'],
-                status=TaskStatus(row['status']),
-                created_at=datetime.fromisoformat(row['created_at']),
-                updated_at=datetime.fromisoformat(row['updated_at']) if row['updated_at'] else None,
-                result=row['result'],
-                waiting_time=row['waiting_time'],
-                processing_time=row['processing_time']-row['waiting_time'],
-            ))
+            recent_tasks.append(
+                Task(
+                    id=row["id"],
+                    audio_filepath=row["audio_filepath"],
+                    priority=row["priority"],
+                    status=TaskStatus(row["status"]),
+                    created_at=datetime.fromisoformat(row["created_at"]),
+                    updated_at=(
+                        datetime.fromisoformat(row["updated_at"])
+                        if row["updated_at"]
+                        else None
+                    ),
+                    result=row["result"],
+                    waiting_time=row["waiting_time"],
+                    processing_time=row["processing_time"] - row["waiting_time"],
+                )
+            )
         return recent_tasks
 
     def get_processing_tasks(self) -> List[Task]:
@@ -212,23 +239,65 @@ class PriorityQueue:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT * FROM tasks WHERE status = ?",
-            (TaskStatus.PROCESSING.value,)
+            "SELECT * FROM tasks WHERE status = ?", (TaskStatus.PROCESSING.value,)
         )
         rows = cursor.fetchall()
         conn.close()
-        
+
         processing_tasks = []
         for row in rows:
-            processing_tasks.append(Task(
-                id=row['id'],
-                audio_filepath=row['audio_filepath'],
-                priority=row['priority'],
-                status=TaskStatus(row['status']),
-                created_at=datetime.fromisoformat(row['created_at']),
-                updated_at=datetime.fromisoformat(row['updated_at']) if row['updated_at'] else None,
-                result=row['result'],
-                waiting_time=row['waiting_time'],
-                processing_time=row['processing_time']
-            ))
+            processing_tasks.append(
+                Task(
+                    id=row["id"],
+                    audio_filepath=row["audio_filepath"],
+                    priority=row["priority"],
+                    status=TaskStatus(row["status"]),
+                    created_at=datetime.fromisoformat(row["created_at"]),
+                    updated_at=(
+                        datetime.fromisoformat(row["updated_at"])
+                        if row["updated_at"]
+                        else None
+                    ),
+                    result=row["result"],
+                    waiting_time=row["waiting_time"],
+                    processing_time=row["processing_time"],
+                )
+            )
         return processing_tasks
+
+    def calculate_statistics(self, interval_minutes: int, worker_count: int = 1):
+        """计算指定时间区间内的平均等待时间和负载
+        :param interval_minutes: 时间区间（分钟）
+        :param worker_count: 工作线程数量，用于计算负载
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # 使用SQLite的datetime函数处理时间范围
+            cursor.execute(
+                """
+            SELECT
+                AVG(waiting_time),
+                SUM(processing_time - waiting_time)
+            FROM
+                tasks
+            WHERE
+                status IN ('completed', 'failed')
+              AND datetime(updated_at) >= datetime('now', ?, 'localtime');
+                """,
+                (f"-{interval_minutes} minutes",),
+            )
+            result = cursor.fetchone()
+            print(result)
+            avg_waiting_time = result[0] or 0.0
+            total_processing_time = result[1] or 0.0
+
+            # 计算负载 = 总处理时间 / (时间区间 * 工作线程数)
+            total_seconds = interval_minutes * 60 * worker_count
+            avg_load = (
+                (total_processing_time / total_seconds) * 100
+                if total_seconds > 0
+                else 0.0
+            )
+
+        return round(avg_waiting_time, 2), round(avg_load, 2)

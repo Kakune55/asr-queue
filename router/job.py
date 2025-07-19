@@ -130,3 +130,18 @@ async def get_task_details(
     if not task:
         raise HTTPException(status_code=404, detail="任务未找到")
     return task # 直接返回Task对象，FastAPI会自动序列化为JSON
+
+@router.get("/statistics", summary="获取系统统计信息")
+async def get_statistics(asr_queue: PriorityQueue = Depends(get_queue)):
+    """获取最近5/15/45分钟的平均等待时间和负载统计"""
+    stats = {}
+    intervals = [5, 15, 45]
+    # 当前系统工作线程数量（根据main.py中只启动了一个worker）
+    worker_count = 1
+    for interval in intervals:
+        avg_waiting, avg_load = asr_queue.calculate_statistics(interval, worker_count)
+        stats[f"last_{interval}_min"] = {
+            "avg_waiting_time": avg_waiting,
+            "avg_load_percent": avg_load
+        }
+    return stats
