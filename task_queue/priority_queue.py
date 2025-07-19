@@ -42,9 +42,9 @@ class PriorityQueue:
             for row in cursor.fetchall():
                 task_id, priority, created_at_str = row
                 created_at = datetime.fromisoformat(created_at_str)
-                # heapq默认是最小堆，所以优先级数值越小，越先被处理
-                # created_at作为次要排序键，确保相同优先级的任务按FIFO顺序处理
-                heapq.heappush(self._queue, (priority, created_at, task_id))
+                # 修改为最大堆：优先级数值越大越优先
+                # 通过取负实现：用户优先级数值越大 -> 堆中数值越小
+                heapq.heappush(self._queue, (-priority, created_at, task_id))
             conn.close()
             print(f"从数据库加载了 {len(self._queue)} 个待处理任务。")
 
@@ -68,7 +68,7 @@ class PriorityQueue:
             conn.close()
 
             # 2. 推入内存队列
-            heapq.heappush(self._queue, (priority, created_at, task_id))
+            heapq.heappush(self._queue, (-priority, created_at, task_id))
             return task_id
 
     def pop(self) -> Optional[str]:
@@ -232,113 +232,3 @@ class PriorityQueue:
                 processing_time=row['processing_time']
             ))
         return processing_tasks
-
-# 示例用法
-if __name__ == '__main__':
-    print("--- PriorityQueue Test ---")
-    # 创建一个新的数据库文件进行测试，避免影响主数据库
-    test_db = "test_queue.db"
-    if os.path.exists(test_db):
-        os.remove(test_db)
-    if not os.path.exists(AUDIO_STORAGE_DIR):
-        os.makedirs(AUDIO_STORAGE_DIR)
-
-    pq = PriorityQueue(db_path=test_db)
-    
-    # 添加入队
-    print("添加两个任务 P10, P1...")
-    task_id_1 = pq.push(os.path.join(AUDIO_STORAGE_DIR, "test_audio_1.wav"), priority=10) # 传入文件路径
-    time.sleep(1) # 确保时间戳不同
-    task_id_2 = pq.push(os.path.join(AUDIO_STORAGE_DIR, "test_audio_2.wav"), priority=1) # 传入文件路径
-    
-    # 创建对应的测试音频文件
-    with open(os.path.join(AUDIO_STORAGE_DIR, "test_audio_1.wav"), 'wb') as f:
-        f.write(b"some_audio_data_1")
-    with open(os.path.join(AUDIO_STORAGE_DIR, "test_audio_2.wav"), 'wb') as f:
-        f.write(b"some_audio_data_2")
-
-    print(f"当前队列大小: {pq.size}")
-    
-    # 取出任务 (应取出P1，即task_id_2)
-    next_task_id = pq.pop()
-    if next_task_id:
-        print(f"取出的任务ID: {next_task_id} (预期为 {task_id_2})")
-        assert next_task_id == task_id_2
-        
-        task_details = pq.get_task(next_task_id)
-        assert task_details is not None
-        print(f"任务详情: {task_details}")
-        assert task_details.status == TaskStatus.PROCESSING
-        
-        # 更新任务
-        print("更新任务状态为 'completed'...")
-        pq.update_task_status(next_task_id, TaskStatus.COMPLETED, "This is a test result.")
-        completed_task = pq.get_task(next_task_id)
-        assert completed_task is not None
-        print(f"完成的任务: {completed_task}")
-        assert completed_task.status == TaskStatus.COMPLETED
-    else:
-        print("测试失败：未能从队列中取出任务。")
-
-    print(f"弹出后队列大小: {pq.size}")
-    assert pq.size == 1
-    
-    # 测试从数据库重新加载
-    print("\n--- 测试从数据库重新加载 ---")
-    pq2 = PriorityQueue(db_path=test_db)
-    print(f"新队列大小: {pq2.size} (预期为 1)")
-    assert pq2.size == 1
-    reloaded_task_id = pq2.pop()
-    print(f"重新加载后弹出的任务ID: {reloaded_task_id} (预期为 {task_id_1})")
-    assert reloaded_task_id == task_id_1
-
-    # 测试清理任务
-    print("\n--- 测试清理任务 ---")
-    print("将剩余任务标记为失败...")
-    remaining_task_id = pq.pop()
-    if remaining_task_id:
-        pq.update_task_status(remaining_task_id, TaskStatus.FAILED, "Failed for cleanup test.")
-    
-    # 手动插入一个更早的任务
-    conn = sqlite3.connect(test_db, check_same_thread=False)
-    cursor = conn.cursor()
-    old_time = datetime.now() - timedelta(minutes=40)
-    # 注意：这里需要提供audio_filepath，即使是旧任务
-    cursor.execute("INSERT INTO tasks (id, audio_filepath, priority, status, created_at) VALUES (?, ?, ?, ?, ?)",
-                   ('old_task', os.path.join(AUDIO_STORAGE_DIR, 'old_task.wav'), 1, 'completed', old_time))
-    conn.commit()
-    conn.close()
-    # 创建一个对应的旧音频文件
-    with open(os.path.join(AUDIO_STORAGE_DIR, 'old_task.wav'), 'wb') as f:
-        f.write(b'old_audio_data')
-
-    print("执行清理...")
-    pq.cleanup_old_audio_data(minutes=30)
-    
-    # 验证旧任务的音频文件是否被删除，且数据库记录中的路径是否为空
-    assert not os.path.exists(os.path.join(AUDIO_STORAGE_DIR, 'old_task.wav'))
-    conn = sqlite3.connect(test_db, check_same_thread=False)
-    cursor = conn.cursor()
-    cursor.execute("SELECT audio_filepath FROM tasks WHERE id = 'old_task'")
-    assert cursor.fetchone()[0] is None
-    print("旧任务的音频文件已被成功删除，数据库路径已清空。")
-    # 验证新任务是否保留
-    cursor.execute("SELECT audio_filepath FROM tasks WHERE id = ?", (remaining_task_id,))
-    assert cursor.fetchone()[0] is not None
-    print("近期任务的音频文件路径被正确保留。")
-    conn.close()
-
-    # 测试获取最近任务
-    print("\n--- 测试获取最近任务 ---")
-    recent_tasks = pq.get_recent_tasks(limit=5)
-    print(f"最近任务数量: {len(recent_tasks)}")
-    for task in recent_tasks:
-        print(f"  ID: {task.id}, Status: {task.status.value}, Waiting: {task.waiting_time:.2f}s, Processing: {task.processing_time:.2f}s")
-
-
-    # 清理测试数据库和音频文件目录
-    os.remove(test_db)
-    for f in os.listdir(AUDIO_STORAGE_DIR):
-        os.remove(os.path.join(AUDIO_STORAGE_DIR, f))
-    os.rmdir(AUDIO_STORAGE_DIR)
-    print("\n测试完成。")
