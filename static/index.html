@@ -1,155 +1,304 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>ASR服务监控面板</title>
-        <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 40px; background-color: #f7f7f7; color: #333; }
-            #dashboard { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-            h1, h2 { color: #1a1a1a; }
-            #queue-size { color: #007aff; font-size: 1.5em; }
-            ul { list-style-type: none; padding: 0; }
-            li { background-color: #f0f0f0; margin-top: 5px; padding: 10px; border-radius: 4px; }
-            .task-item { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
-            .task-item:last-child { border-bottom: none; }
-            .task-status { font-weight: bold; }
-            .status-completed { color: green; }
-            .status-failed { color: red; }
-            .status-pending { color: orange; }
-            .status-processing { color: blue; }
-            .details-button { cursor: pointer; color: #007aff; text-decoration: underline; }
-            
-            /* 模态框样式 */
-            .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
-            .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; border-radius: 8px; }
-            .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
-            .close:hover, .close:focus { color: black; text-decoration: none; cursor: pointer; }
-        </style>
-    </head>
-    <body>
-        <div id="dashboard">
-            <h1>ASR服务监控面板</h1>
-            <h2>队列状态</h2>
-            <p>当前排队任务数: <strong id="queue-size">0</strong></p>
-            <h3>待处理任务列表</h3>
-            <ul id="pending-tasks"></ul>
 
-            <h2>正在处理中的任务</h2>
-            <ul id="processing-tasks"></ul>
+<head>
+    <title>ASR服务监控面板</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 20px; /* 减小外边距 */
+            background-color: #f7f7f7;
+            color: #333;
+        }
 
-            <h2>最近处理任务</h2>
-            <ul id="recent-tasks"></ul>
-        </div>
+        #dashboard {
+            background-color: #fff;
+            padding: 15px; /* 减小内边距 */
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
 
-        <!-- 任务详情模态框 -->
-        <div id="task-details-modal" class="modal">
-          <div class="modal-content">
+        h1,
+        h2,
+        h3 { /* 统一调整标题间距 */
+            color: #1a1a1a;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        #queue-size {
+            color: #007aff;
+            font-size: 1.5em;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background-color: #f0f0f0;
+            margin-top: 5px;
+            padding: 8px 15px;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .task-item { /* 移除Flexbox相关样式，但保留一些通用样式 */
+            border-bottom: none; /* 表格有边框，不需要单独的底部边框 */
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        .task-item:last-child { border-bottom: none; } /* 确保没有额外的边框 */
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-status {
+            font-weight: bold;
+        }
+
+        .status-completed {
+            color: green;
+        }
+
+        .status-failed {
+            color: red;
+        }
+
+        .status-pending {
+            color: orange;
+        }
+
+        .status-processing {
+            color: blue;
+        }
+
+        .details-button {
+            cursor: pointer;
+            color: #007aff;
+            text-decoration: underline;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            border-radius: 8px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="dashboard">
+        <h1>ASR服务监控面板</h1>
+        <h2>队列状态</h2>
+        <p>当前排队任务数: <strong id="queue-size">0</strong></p>
+        <h3>待处理任务列表</h3>
+        <table id="pending-tasks">
+            <thead>
+                <tr>
+                    <th>任务ID</th>
+                    <th>优先级</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h2>正在处理中的任务</h2>
+        <table id="processing-tasks">
+            <thead>
+                <tr>
+                    <th>任务ID</th>
+                    <th>优先级</th>
+                    <th>状态</th>
+                    <th>等待时间</th>
+                    <th>处理时间</th>
+                    <th>结果</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h2>最近处理任务</h2>
+        <table id="recent-tasks">
+            <thead>
+                <tr>
+                    <th>任务ID</th>
+                    <th>优先级</th>
+                    <th>状态</th>
+                    <th>等待时间</th>
+                    <th>处理时间</th>
+                    <th>结果</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 任务详情模态框 -->
+    <div id="task-details-modal" class="modal">
+        <div class="modal-content">
             <span class="close">&times;</span>
             <h2>任务详情</h2>
             <pre id="modal-task-details" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
-          </div>
         </div>
+    </div>
 
-        <script>
-            const queueSizeElement = document.getElementById("queue-size");
-            const pendingTasksListElement = document.getElementById("pending-tasks");
-            const processingTasksListElement = document.getElementById("processing-tasks"); // 新增
-            const recentTasksListElement = document.getElementById("recent-tasks");
-            const modal = document.getElementById("task-details-modal");
-            const modalDetailsElement = document.getElementById("modal-task-details");
-            const closeModalSpan = document.getElementsByClassName("close")[0];
+    <script>
+        const queueSizeElement = document.getElementById("queue-size");
+        const pendingTasksListElement = document.getElementById("pending-tasks");
+        const processingTasksListElement = document.getElementById("processing-tasks"); // 新增
+        const recentTasksListElement = document.getElementById("recent-tasks");
+        const modal = document.getElementById("task-details-modal");
+        const modalDetailsElement = document.getElementById("modal-task-details");
+        const closeModalSpan = document.getElementsByClassName("close")[0];
 
-            // 关闭模态框
-            closeModalSpan.onclick = function() { modal.style.display = "none"; }
-            window.onclick = function(event) {
-                if (event.target == modal) {
-                    modal.style.display = "none";
-                }
+        // 关闭模态框
+        closeModalSpan.onclick = function () { modal.style.display = "none"; }
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
             }
-            
-            const ws = new WebSocket(`ws://${location.host}/ws/status`);
+        }
 
-            ws.onopen = function(event) {
-                console.log("成功连接到服务器WebSocket。");
-            };
+        const ws = new WebSocket(`ws://${location.host}/ws/status`);
 
-            ws.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                queueSizeElement.innerText = data.queue_size;
-                
-                // 更新待处理任务列表
-                pendingTasksListElement.innerHTML = '';
-                data.pending_tasks.forEach(function(task) {
-                    const li = document.createElement("li");
-                    li.textContent = `任务ID: ${task.id} | 优先级: ${task.priority}`;
-                    pendingTasksListElement.appendChild(li);
-                });
+        ws.onopen = function (event) {
+            console.log("成功连接到服务器WebSocket。");
+        };
 
-                // 更新正在处理中的任务列表 (新增)
-                processingTasksListElement.innerHTML = '';
-                data.processing_tasks.forEach(function(task) {
-                    const li = document.createElement("li");
-                    li.classList.add('task-item');
-                    let statusClass = 'status-processing'; // 正在处理中的任务状态固定为processing
-                    
-                    li.innerHTML = `
-                        任务ID: ${task.id} <br>
-                        优先级: ${task.priority} <br>
-                        状态: <span class="task-status ${statusClass}">${task.status}</span> <br>
-                        等待时间: ${task.waiting_time ? task.waiting_time.toFixed(2) + 's' : 'N/A'} <br>
-                        处理时间: ${task.processing_time ? task.processing_time.toFixed(2) + 's' : 'N/A'} <br>
-                        结果: ${task.result_display || 'N/A'}
-                    `;
-                    processingTasksListElement.appendChild(li);
-                });
+        ws.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            queueSizeElement.innerText = data.queue_size;
 
-                // 更新最近处理任务列表
-                recentTasksListElement.innerHTML = '';
-                data.recent_tasks.forEach(function(task) {
-                    const li = document.createElement("li");
-                    li.classList.add('task-item');
-                    let statusClass = '';
-                    if (task.status === 'completed') statusClass = 'status-completed';
-                    else if (task.status === 'failed') statusClass = 'status-failed';
-                    else if (task.status === 'pending') statusClass = 'status-pending';
-                    else if (task.status === 'processing') statusClass = 'status-processing';
-                    
-                    li.innerHTML = `
-                        任务ID: ${task.id} <br>
-                        优先级: ${task.priority} <br>
-                        状态: <span class="task-status ${statusClass}">${task.status}</span> <br>
-                        等待时间: ${task.waiting_time ? task.waiting_time.toFixed(2) + 's' : 'N/A'} <br>
-                        处理时间: ${task.processing_time ? task.processing_time.toFixed(2) + 's' : 'N/A'} <br>
-                        结果: <span class="details-button" data-task-id="${task.id}">${task.result_display}</span>
-                    `;
-                    recentTasksListElement.appendChild(li);
-                });
-            };
-
-            // 事件委托，处理所有“查看详情”按钮的点击事件
-            recentTasksListElement.addEventListener('click', function(event) {
-                if (event.target && event.target.matches('.details-button')) {
-                    const taskId = event.target.getAttribute('data-task-id');
-                    fetch(`/api/task/${taskId}`)
-                        .then(response => response.json())
-                        .then(taskDetails => {
-                            modalDetailsElement.textContent = JSON.stringify(taskDetails, null, 2);
-                            modal.style.display = "block";
-                        })
-                        .catch(error => console.error('获取任务详情失败:', error));
-                }
+            // 更新待处理任务列表
+            // 更新待处理任务列表
+            pendingTasksListElement.querySelector('tbody').innerHTML = '';
+            data.pending_tasks.forEach(function (task) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${task.id}</td>
+                    <td>${task.priority}</td>
+                `;
+                pendingTasksListElement.querySelector('tbody').appendChild(tr);
             });
 
-            ws.onclose = function(event) {
-                console.log("与服务器的WebSocket连接已断开，尝试重新连接...");
-                setTimeout(() => {
-                    // 简单的重连逻辑
-                    window.location.reload();
-                }, 3000);
-            };
+            // 更新正在处理中的任务列表 (新增)
+            processingTasksListElement.querySelector('tbody').innerHTML = '';
+            data.processing_tasks.forEach(function (task) {
+                const tr = document.createElement("tr");
+                let statusClass = 'status-processing'; // 正在处理中的任务状态固定为processing
+                
+                tr.innerHTML = `
+                    <td>${task.id}</td>
+                    <td>${task.priority}</td>
+                    <td><span class="task-status ${statusClass}">${task.status}</span></td>
+                    <td>${task.waiting_time ? task.waiting_time.toFixed(2) + 's' : 'N/A'}</td>
+                    <td>${task.processing_time ? task.processing_time.toFixed(2) + 's' : 'N/A'}</td>
+                    <td>${task.result_display || 'N/A'}</td>
+                `;
+                processingTasksListElement.querySelector('tbody').appendChild(tr);
+            });
 
-            ws.onerror = function(error) {
-                console.error("WebSocket 错误: ", error);
-            };
-        </script>
-    </body>
+            // 更新最近处理任务列表
+            recentTasksListElement.querySelector('tbody').innerHTML = '';
+            data.recent_tasks.forEach(function (task) {
+                const tr = document.createElement("tr");
+                let statusClass = '';
+                if (task.status === 'completed') statusClass = 'status-completed';
+                else if (task.status === 'failed') statusClass = 'status-failed';
+                else if (task.status === 'pending') statusClass = 'status-pending';
+                else if (task.status === 'processing') statusClass = 'status-processing';
+
+                tr.innerHTML = `
+                    <td>${task.id}</td>
+                    <td>${task.priority}</td>
+                    <td><span class="task-status ${statusClass}">${task.status}</span></td>
+                    <td>${task.waiting_time ? task.waiting_time.toFixed(2) + 's' : 'N/A'}</td>
+                    <td>${task.processing_time ? task.processing_time.toFixed(2) + 's' : 'N/A'}</td>
+                    <td><span class="details-button" data-task-id="${task.id}">${task.result_display}</span></td>
+                `;
+                recentTasksListElement.querySelector('tbody').appendChild(tr);
+            });
+        };
+
+        // 事件委托，处理所有“查看详情”按钮的点击事件
+        recentTasksListElement.addEventListener('click', function (event) {
+            if (event.target && event.target.matches('.details-button')) {
+                const taskId = event.target.getAttribute('data-task-id');
+                fetch(`/api/task/${taskId}`)
+                    .then(response => response.json())
+                    .then(taskDetails => {
+                        modalDetailsElement.textContent = JSON.stringify(taskDetails, null, 2);
+                        modal.style.display = "block";
+                    })
+                    .catch(error => console.error('获取任务详情失败:', error));
+            }
+        });
+
+        ws.onclose = function (event) {
+            console.log("与服务器的WebSocket连接已断开，尝试重新连接...");
+            setTimeout(() => {
+                // 简单的重连逻辑
+                window.location.reload();
+            }, 3000);
+        };
+
+        ws.onerror = function (error) {
+            console.error("WebSocket 错误: ", error);
+        };
+    </script>
+</body>
+
 </html>

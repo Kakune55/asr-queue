@@ -202,7 +202,7 @@ class PriorityQueue:
                 updated_at=datetime.fromisoformat(row['updated_at']) if row['updated_at'] else None,
                 result=row['result'],
                 waiting_time=row['waiting_time'],
-                processing_time=row['processing_time']
+                processing_time=row['processing_time']-row['waiting_time'],
             ))
         return recent_tasks
 
