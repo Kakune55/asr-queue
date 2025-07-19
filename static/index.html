@@ -136,12 +136,63 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        /* 设备信息样式 */
+        .device-badge {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            margin-left: 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            max-width: 400px;
+        }
+
+        .device-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* GPU徽章样式 */
+        .device-badge.gpu {
+            background: linear-gradient(135deg, #76b900 0%, #5a9216 100%);
+        }
+
+        /* Intel CPU徽章样式 */  
+        .device-badge.cpu, .device-badge.intel_cpu {
+            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+        }
+
+        /* AMD CPU徽章样式 */
+        .device-badge.amd_cpu {
+            background: linear-gradient(135deg, #ed1c24 0%, #c5151c 100%);
+        }
+
+        /* 标题容器 */
+        .title-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 
 <body>
     <div id="dashboard">
-        <h1>ASR服务监控面板</h1>
+        <div class="title-container">
+            <h1>ASR服务监控面板</h1>
+            <!-- 设备信息徽章 -->
+            <div id="device-badge" class="device-badge">
+                <span id="device-badge-text">检测中...</span>
+            </div>
+        </div>
+        
         <h2>队列状态</h2>
         <p>当前排队任务数: <strong id="queue-size">0</strong></p>
         
@@ -337,9 +388,45 @@
             }
         }
 
+        // 获取设备信息
+        async function fetchDeviceInfo() {
+            try {
+                const response = await fetch('/api/device/info');
+                const deviceInfo = await response.json();
+                
+                const deviceBadgeElement = document.getElementById('device-badge');
+                const deviceBadgeTextElement = document.getElementById('device-badge-text');
+                
+                if (deviceInfo.error) {
+                    deviceBadgeTextElement.textContent = '设备检测失败';
+                    return;
+                }
+                
+                // 直接显示完整的设备信息
+                deviceBadgeTextElement.textContent = deviceInfo.device_info;
+                
+                // 根据设备类型设置徽章样式
+                if (deviceInfo.device_type === 'GPU') {
+                    deviceBadgeElement.className = 'device-badge gpu';
+                } else if (deviceInfo.device_type === 'AMD_CPU') {
+                    deviceBadgeElement.className = 'device-badge amd_cpu';
+                } else if (deviceInfo.device_type === 'INTEL_CPU') {
+                    deviceBadgeElement.className = 'device-badge intel_cpu';
+                } else {
+                    deviceBadgeElement.className = 'device-badge cpu';
+                }
+            } catch (error) {
+                console.error('获取设备信息失败:', error);
+                document.getElementById('device-badge-text').textContent = '检测失败';
+            }
+        }
+
         // 每30秒更新一次
         setInterval(fetchStatistics, 30000);
         fetchStatistics(); // 初始加载
+        
+        // 获取设备信息（只需要获取一次）
+        fetchDeviceInfo();
     </script>
 </body>
 

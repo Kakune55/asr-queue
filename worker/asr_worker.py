@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import time
 import threading
+import torch
 import tempfile
 from funasr import AutoModel
 from task_queue.priority_queue import PriorityQueue, AUDIO_STORAGE_DIR
@@ -18,23 +19,29 @@ class ASRWorker(threading.Thread):
     - 在后台持续运行，从队列中获取任务并处理。
     - 在初始化时加载一次模型，避免重复加载的开销。
     """
-    def __init__(self, queue: PriorityQueue, model_path="iic/SenseVoiceSmall"):
+    def __init__(self, queue: PriorityQueue, model_path="iic/SenseVoiceSmall", device="auto"):
         super().__init__()
         self.queue = queue
         self.model_path = model_path
         self.model = None
         self.stop_event = threading.Event()  # 用于优雅地停止线程
         self.daemon = True  # 设置为守护线程，主程序退出时线程也会退出
+        self.device = device
 
     def run(self):
         """线程的主执行逻辑"""
         logger.info("正在初始化ASR模型...")
         # 加载FunASR模型
+        if self.device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "cpu" # 自动检测设备
+        else:
+            device = self.device
+        logger.info(f"使用设备: {device}")
         self.model = AutoModel(
             model=self.model_path,
             vad_model="fsmn-vad",
             vad_kwargs={"max_single_segment_time": 30000},
-            device="cpu",  # 使用GPU进行推理
+            device=device,
             runtime="onnx", # 使用ONNX Runtime以获得更好的性能
         )
         logger.info("ASR模型初始化完成。")

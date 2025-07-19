@@ -7,6 +7,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles # 导入StaticFiles
 from router.job import router as job_router, get_queue
+from router.device import router as device_router
 from task_queue.priority_queue import PriorityQueue
 from uvicorn.server import logger
 from worker.asr_worker import ASRWorker
@@ -24,7 +25,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # 创建一个全局唯一的任务队列实例
 asr_queue = PriorityQueue()
 # 创建一个全局唯一的ASR工作者实例
-asr_worker = ASRWorker(asr_queue)
+asr_worker = ASRWorker(asr_queue, device="auto")
 
 # --- 依赖注入 ---
 # 定义一个函数，用于在请求处理时获取队列实例
@@ -32,11 +33,20 @@ def get_singleton_queue():
     """获取全局唯一的任务队列实例"""
     return asr_queue
 
+# 定义一个函数，用于获取ASRWorker实例
+def get_asr_worker():
+    """获取全局唯一的ASRWorker实例"""
+    return asr_worker
+
 # 使用FastAPI的依赖覆盖功能，将所有对get_queue的依赖请求都导向get_singleton_queue
 # 这样可以确保整个应用（包括不同的路由）共享同一个asr_queue实例
 app.dependency_overrides[get_queue] = get_singleton_queue
 # 注册任务路由
 app.include_router(job_router, prefix="/api", tags=["ASR Tasks"])
+# 注册设备信息路由，并提供ASRWorker依赖
+from router.device import get_asr_worker as get_worker_dep
+app.dependency_overrides[get_worker_dep] = get_asr_worker
+app.include_router(device_router, prefix="/api/device", tags=["Device Info"])
 
 
 # --- WebSocket后台管理 ---
