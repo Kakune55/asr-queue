@@ -9,6 +9,7 @@ import sqlite3
 import threading
 import time
 import uuid
+from uvicorn.server import logger
 from datetime import datetime, timedelta
 from typing import Optional, List
 
@@ -51,7 +52,7 @@ class PriorityQueue:
                 # 通过取负实现：用户优先级数值越大 -> 堆中数值越小
                 heapq.heappush(self._queue, (-priority, created_at, task_id))
             conn.close()
-            print(f"从数据库加载了 {len(self._queue)} 个待处理任务。")
+            logger.info(f"从数据库加载了 {len(self._queue)} 个待处理任务。")
 
     def push(self, audio_filepath: str, priority: int) -> str:  # 更改为audio_filepath
         """
@@ -179,7 +180,7 @@ class PriorityQueue:
             for filepath in filepaths_to_delete:
                 if os.path.exists(filepath):
                     os.remove(filepath)
-                    print(f"文件清理：删除了旧音频文件 {filepath}")
+                    logger.info(f"文件清理：删除了旧音频文件 {filepath}")
 
             # 将数据库中的audio_filepath字段设置为空
             cursor.execute(
@@ -190,9 +191,9 @@ class PriorityQueue:
             conn.commit()
             conn.close()
             if count > 0:
-                print(f"数据库清理：清除了 {count} 个旧任务的音频文件路径。")
+                logger.info(f"数据库清理：清除了 {count} 个旧任务的音频文件路径。")
         except Exception as e:
-            print(f"数据库清理时出错: {e}")
+            logger.error(f"数据库清理时出错: {e}")
 
     @property
     def size(self):
@@ -288,7 +289,6 @@ class PriorityQueue:
                 (f"-{interval_minutes} minutes",),
             )
             result = cursor.fetchone()
-            print(result)
             avg_waiting_time = result[0] or 0.0
             total_processing_time = result[1] or 0.0
 

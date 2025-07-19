@@ -7,6 +7,7 @@ from fastapi import APIRouter, File, UploadFile, BackgroundTasks, HTTPException,
 from pydantic import BaseModel, Field
 from task_queue.priority_queue import PriorityQueue, AUDIO_STORAGE_DIR
 from models import TaskStatus
+from uvicorn.server import logger
 import time
 import uuid
 

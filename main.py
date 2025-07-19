@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles # 导入StaticFiles
 from router.job import router as job_router, get_queue
 from task_queue.priority_queue import PriorityQueue
+from uvicorn.server import logger
 from worker.asr_worker import ASRWorker
 from models import TaskStatus
 import json
@@ -115,12 +116,12 @@ async def run_cleanup_scheduler():
     while True:
         # 每小时运行一次清理
         await asyncio.sleep(3600) 
-        print("开始执行定期的数据库清理任务...")
+        logger.info("开始执行定期的数据库清理任务...")
         try:
             # 清理30分钟前的旧任务音频数据
             asr_queue.cleanup_old_audio_data(minutes=30)
         except Exception as e:
-            print(f"执行数据库清理任务时出错: {e}")
+            logger.error(f"执行数据库清理任务时出错: {e}")
 
 @app.websocket("/ws/status")
 async def websocket_endpoint(websocket: WebSocket):
@@ -132,7 +133,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-        print("A client disconnected from dashboard.")
+        logger.info("A client disconnected from dashboard.")
 
 # --- 应用生命周期事件 ---
 @app.on_event("startup")
@@ -145,7 +146,7 @@ async def startup_event():
     asyncio.create_task(broadcast_queue_status())
     # 在后台启动数据库清理调度器
     asyncio.create_task(run_cleanup_scheduler())
-    print("ASR Worker and cleanup scheduler have been started.")
+    logger.info("ASR Worker and cleanup scheduler have been started.")
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -153,7 +154,7 @@ async def shutdown_event():
     # 停止ASR工作者线程
     app.state.worker.stop()
     app.state.worker.join()
-    print("ASR Worker has been stopped.")
+    logger.info("ASR Worker has been stopped.")
 
 # --- 管理后台HTML页面 ---
 @app.get("/", response_class=HTMLResponse, tags=["Dashboard"])
