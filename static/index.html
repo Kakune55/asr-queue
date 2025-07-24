@@ -196,6 +196,14 @@
         <h2>队列状态</h2>
         <p>当前排队任务数: <strong id="queue-size">0</strong></p>
         
+        <h2>系统配置</h2>
+        <div id="config-section">
+            <label for="max-queue-size">队列最大容量:</label>
+            <input type="number" id="max-queue-size" min="1" value="10">
+            <button id="update-config-btn">更新配置</button>
+            <p id="config-message" style="display: none;"></p>
+        </div>
+        
         <h2>系统统计</h2>
         <div id="statistics" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
             <div class="stat-card" style="flex: 1; background: #f0f0f0; padding: 15px; margin: 0 5px; border-radius: 8px; text-align: center;">
@@ -267,6 +275,57 @@
     </div>
 
     <script>
+        // 获取当前配置
+        async function fetchCurrentConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                document.getElementById('max-queue-size').value = config.max_queue_size;
+            } catch (error) {
+                console.error('获取当前配置失败:', error);
+            }
+        }
+
+        // 更新配置
+        async function updateConfig() {
+            const maxQueueSize = document.getElementById('max-queue-size').value;
+            const configMessageElement = document.getElementById('config-message');
+            
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ max_queue_size: parseInt(maxQueueSize) })
+                });
+                
+                if (response.ok) {
+                    const updatedConfig = await response.json();
+                    configMessageElement.textContent = `配置已更新，新的队列最大容量为: ${updatedConfig.max_queue_size}`;
+                    configMessageElement.style.color = 'green';
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('更新配置失败:', error);
+                configMessageElement.textContent = '更新配置失败: ' + error.message;
+                configMessageElement.style.color = 'red';
+            } finally {
+                configMessageElement.style.display = 'block';
+                // 3秒后隐藏消息
+                setTimeout(() => {
+                    configMessageElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // 绑定事件
+        document.getElementById('update-config-btn').addEventListener('click', updateConfig);
+
+        // 页面加载时获取当前配置
+        fetchCurrentConfig();
+
         const queueSizeElement = document.getElementById("queue-size");
         const pendingTasksListElement = document.getElementById("pending-tasks");
         const processingTasksListElement = document.getElementById("processing-tasks"); // 新增

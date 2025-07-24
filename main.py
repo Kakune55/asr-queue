@@ -6,7 +6,7 @@ import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles # 导入StaticFiles
-from router.job import router as job_router, get_queue
+from router.job import router as job_router, config_router, get_queue
 from router.device import router as device_router
 from task_queue.priority_queue import PriorityQueue
 from uvicorn.server import logger
@@ -43,6 +43,7 @@ def get_asr_worker():
 app.dependency_overrides[get_queue] = get_singleton_queue
 # 注册任务路由
 app.include_router(job_router, prefix="/api", tags=["ASR Tasks"])
+app.include_router(config_router, prefix="/api", tags=["Configuration"])
 # 注册设备信息路由，并提供ASRWorker依赖
 from router.device import get_asr_worker as get_worker_dep
 app.dependency_overrides[get_worker_dep] = get_asr_worker

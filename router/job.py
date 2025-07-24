@@ -8,14 +8,14 @@ from pydantic import BaseModel, Field
 from task_queue.priority_queue import PriorityQueue, AUDIO_STORAGE_DIR
 from models import TaskStatus
 from uvicorn.server import logger
+# 导入配置模块
+from config import config, SystemConfig
 import time
 import uuid
 
+# 为任务和配置创建不同的路由
 router = APIRouter()
-
-# --- 配置 ---
-# 设置队列的最大容量
-MAX_QUEUE_SIZE = 10
+config_router = APIRouter()
 
 class TaskRequest(BaseModel):
     """定义任务请求中可配置的参数"""
@@ -68,7 +68,7 @@ async def create_asr_task(
     - 客户端需要通过状态查询接口轮询结果。
     """
     # 检查队列是否已满
-    if asr_queue.size >= MAX_QUEUE_SIZE:
+    if asr_queue.size >= config.max_queue_size:
         raise HTTPException(status_code=429, detail="服务器繁忙，请稍后再试 (队列已满)")
         
     # 保存音频文件到文件系统
@@ -92,7 +92,7 @@ async def create_asr_task_sync(
     - 直接返回转写结果。
     """
     # 检查队列是否已满
-    if asr_queue.size >= MAX_QUEUE_SIZE:
+    if asr_queue.size >= config.max_queue_size:
         raise HTTPException(status_code=429, detail="服务器繁忙，请稍后再试 (队列已满)")
 
     # 保存音频文件到文件系统
@@ -146,3 +146,20 @@ async def get_statistics(asr_queue: PriorityQueue = Depends(get_queue)):
             "avg_load_percent": avg_load
         }
     return stats
+
+
+# --- 配置 API 端点 ---
+@config_router.get("/config", response_model=SystemConfig, summary="获取当前系统配置")
+async def get_current_config():
+    """返回当前的系统配置。"""
+    return config
+
+@config_router.put("/config", response_model=SystemConfig, summary="更新系统配置")
+async def update_config(new_config: SystemConfig):
+    """
+    在线更新系统配置。
+    例如，可以用来调整队列的最大容量。
+    """
+    config.max_queue_size = new_config.max_queue_size
+    logger.info(f"队列最大容量已更新为: {config.max_queue_size}")
+    return config
