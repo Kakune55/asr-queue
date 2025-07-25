@@ -3,7 +3,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import asyncio
-from fastapi import APIRouter, File, UploadFile, BackgroundTasks, HTTPException, Depends
+from fastapi import APIRouter, File, UploadFile, BackgroundTasks, HTTPException, Depends, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from task_queue.priority_queue import PriorityQueue, AUDIO_STORAGE_DIR
 from models import TaskStatus
@@ -31,6 +32,13 @@ def get_queue():
     """
     依赖注入占位符。
     在main.py中，这个函数会被一个返回单例队列实例的函数覆盖。
+    """
+    raise NotImplementedError("This should be overridden in main.py")
+
+def get_asr_worker():
+    """
+    依赖注入占位符。
+    在main.py中，这个函数会被一个返回单例ASRWorker实例的函数覆盖。
     """
     raise NotImplementedError("This should be overridden in main.py")
 
@@ -163,3 +171,57 @@ async def update_config(new_config: SystemConfig):
     config.max_queue_size = new_config.max_queue_size
     logger.info(f"队列最大容量已更新为: {config.max_queue_size}")
     return config
+
+@router.post("/asr/sse", summary="提交SSE流式ASR任务")
+async def create_asr_task_sse(
+    request: Request,
+    priority: int = 10,
+    slice_duration: int = 15,
+    audio_file: UploadFile = File(..., description="需要转写的音频文件"),
+    asr_queue: PriorityQueue = Depends(get_queue),
+    asr_worker = Depends(get_asr_worker)
+):
+    """
+    处理SSE流式语音转文字任务。
+    - 接收音频文件、优先级和分片时长。
+    - 使用准流式识别处理音频，通过SSE流式输出结果。
+    """
+    # 检查队列是否已满
+    if asr_queue.size >= config.max_queue_size:
+        raise HTTPException(status_code=429, detail="服务器繁忙，请稍后再试 (队列已满)")
+
+    # 保存音频文件到文件系统
+    audio_filepath = await save_audio_file(audio_file)
+    
+    # 定义生成SSE事件的函数
+    async def event_generator():
+        try:
+            # 使用ASRWorker的准流式识别功能
+            for text in asr_worker.quasi_streaming_process(audio_filepath, slice_duration):
+                # 检查客户端是否断开连接
+                if await request.is_disconnected():
+                    break
+                
+                # 生成SSE事件
+                yield f"data: {text}\n\n"
+                
+                # 短暂休眠，避免过于频繁的输出
+                await asyncio.sleep(0.1)
+                
+            # 发送结束事件
+            yield "event: end\n"
+            yield "data: 结束\n\n"
+        except Exception as e:
+            logger.error(f"SSE流式识别出错: {e}")
+            yield f"event: error\n"
+            yield f"data: {str(e)}\n\n"
+        finally:
+            # 清理临时文件
+            try:
+                if os.path.exists(audio_filepath):
+                    os.remove(audio_filepath)
+            except Exception as e:
+                logger.error(f"清理临时文件失败: {e}")
+    
+    # 返回SSE流式响应
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

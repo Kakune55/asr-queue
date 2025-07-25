@@ -6,6 +6,7 @@ import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles # 导入StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from router.job import router as job_router, config_router, get_queue
 from router.device import router as device_router
 from task_queue.priority_queue import PriorityQueue
@@ -16,6 +17,15 @@ import json
 
 # 初始化FastAPI应用
 app = FastAPI(title="ASR Service", description="一个带优先级队列的ASR语音转文字服务")
+
+# 允许跨域请求
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- 静态文件服务 ---
 # 将'static'目录挂载到'/static'路径，用于提供前端文件
@@ -47,6 +57,9 @@ app.include_router(config_router, prefix="/api", tags=["Configuration"])
 # 注册设备信息路由，并提供ASRWorker依赖
 from router.device import get_asr_worker as get_worker_dep
 app.dependency_overrides[get_worker_dep] = get_asr_worker
+# 为job router提供ASRWorker依赖
+from router.job import get_asr_worker as get_job_worker_dep
+app.dependency_overrides[get_job_worker_dep] = get_asr_worker
 app.include_router(device_router, prefix="/api/device", tags=["Device Info"])
 
 
