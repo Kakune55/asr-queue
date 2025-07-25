@@ -125,8 +125,10 @@ class ASRWorker(threading.Thread):
                             merge_vad=True,
                             merge_length_s=15,
                         )
+                        # 使用富文本后处理，将标签转换为emoji格式
+                        processed_text = rich_transcription_postprocess(res[0]["text"])
                         # 推理成功，更新任务状态和结果
-                        self.queue.update_task_status(task.id, TaskStatus.COMPLETED, res[0]["text"])
+                        self.queue.update_task_status(task.id, TaskStatus.COMPLETED, processed_text)
                         logger.info(f"任务 {task.id} 已完成。")
                     except Exception as e:
                         # 推理失败，记录错误信息
