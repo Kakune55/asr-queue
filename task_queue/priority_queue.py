@@ -27,12 +27,14 @@ class PriorityQueue:
     - 使用heapq实现内存中的优先级队列。
     - 使用SQLite进行任务的持久化存储。
     - 在启动时会从数据库加载未完成的任务。
+    - 使用事件标志实现高效的任务通知机制。
     """
 
     def __init__(self, db_path="asr_queue.db"):
         self.db_path = db_path
         self._queue = []  # 内存中的优先队列 (priority, created_at, task_id)
         self._lock = threading.Lock()  # 线程锁，确保多线程操作安全
+        self._task_available = threading.Event()  # 新任务可用事件标志
         init_db()  # 初始化数据库和表结构
         self._load_pending_tasks()
 
@@ -53,6 +55,9 @@ class PriorityQueue:
                 heapq.heappush(self._queue, (-priority, created_at, task_id))
             conn.close()
             logger.info(f"从数据库加载了 {len(self._queue)} 个待处理任务。")
+            # 如果有待处理任务，设置事件标志
+            if self._queue:
+                self._task_available.set()
 
     def push(self, audio_filepath: str, priority: int) -> str:  # 更改为audio_filepath
         """
@@ -81,6 +86,10 @@ class PriorityQueue:
 
             # 2. 推入内存队列
             heapq.heappush(self._queue, (-priority, created_at, task_id))
+            
+            # 3. 通知工作线程有新任务可用
+            self._task_available.set()
+            
             return task_id
 
     def pop(self) -> Optional[str]:
@@ -90,9 +99,15 @@ class PriorityQueue:
         """
         with self._lock:
             if not self._queue:
+                # 队列为空时，清除事件标志
+                self._task_available.clear()
                 return None
 
             priority, created_at, task_id = heapq.heappop(self._queue)
+
+            # 如果队列变空，清除事件标志
+            if not self._queue:
+                self._task_available.clear()
 
             # 更新数据库中的任务状态
             conn = sqlite3.connect(self.db_path, check_same_thread=False)
@@ -107,6 +122,18 @@ class PriorityQueue:
             conn.close()
 
             return task_id
+
+    def wait_for_task(self, timeout=None):
+        """
+        等待任务可用。使用事件标志实现高效的阻塞等待。
+        
+        Args:
+            timeout (float, optional): 超时时间（秒），None表示无限等待
+            
+        Returns:
+            bool: True表示有任务可用，False表示超时
+        """
+        return self._task_available.wait(timeout)
 
     def get_task(self, task_id: str) -> Optional[Task]:
         """根据任务ID从数据库获取任务详情。"""

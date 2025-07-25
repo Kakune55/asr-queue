@@ -102,43 +102,45 @@ class ASRWorker(threading.Thread):
 
         # 循环，直到stop_event被设置
         while not self.stop_event.is_set():
-            task_id = self.queue.pop()
-            if task_id:
-                task = self.queue.get_task(task_id)
-                # 确保task存在且audio_filepath不为空
-                if task and task.audio_filepath:
-                    logger.info(f"正在处理任务 {task.id}...")
-                    try:
-                        # FunASR模型需要文件路径作为输入
-                        # 确保文件存在
-                        if not os.path.exists(task.audio_filepath):
-                            raise FileNotFoundError(f"音频文件未找到: {task.audio_filepath}")
+            # 使用事件等待，避免CPU空转
+            # 设置超时避免在停止时长时间阻塞
+            if self.queue.wait_for_task(timeout=1.0):
+                # 有任务可用，尝试获取任务
+                task_id = self.queue.pop()
+                if task_id:
+                    task = self.queue.get_task(task_id)
+                    # 确保task存在且audio_filepath不为空
+                    if task and task.audio_filepath:
+                        logger.info(f"正在处理任务 {task.id}...")
+                        try:
+                            # FunASR模型需要文件路径作为输入
+                            # 确保文件存在
+                            if not os.path.exists(task.audio_filepath):
+                                raise FileNotFoundError(f"音频文件未找到: {task.audio_filepath}")
 
-                        # 调用模型进行推理
-                        res = self.model.generate(
-                            input=task.audio_filepath, # 直接使用文件路径
-                            cache={},
-                            language="zh",
-                            disable_pbar=True,
-                            batch_size_s=60,
-                            use_itn=True,
-                            merge_vad=True,
-                            merge_length_s=15,
-                        )
-                        # 使用富文本后处理，将标签转换为emoji格式
-                        processed_text = rich_transcription_postprocess(res[0]["text"])
-                        # 推理成功，更新任务状态和结果
-                        self.queue.update_task_status(task.id, TaskStatus.COMPLETED, processed_text)
-                        logger.info(f"任务 {task.id} 已完成。")
-                    except Exception as e:
-                        # 推理失败，记录错误信息
-                        logger.error(f"处理任务 {task.id} 时出错: {e}")
-                        self.queue.update_task_status(task.id, TaskStatus.FAILED, str(e))
-                else:
-                    logger.warning(f"任务 {task_id} 未找到或无音频文件路径。")
-            else:
-                # 如果队列为空，短暂休眠，避免CPU空转
-                time.sleep(1)
+                            # 调用模型进行推理
+                            res = self.model.generate(
+                                input=task.audio_filepath, # 直接使用文件路径
+                                cache={},
+                                language="zh",
+                                disable_pbar=True,
+                                batch_size_s=60,
+                                use_itn=True,
+                                merge_vad=True,
+                                merge_length_s=15,
+                            )
+                            # 使用富文本后处理，将标签转换为emoji格式
+                            processed_text = rich_transcription_postprocess(res[0]["text"])
+                            # 推理成功，更新任务状态和结果
+                            self.queue.update_task_status(task.id, TaskStatus.COMPLETED, processed_text)
+                            logger.info(f"任务 {task.id} 已完成。")
+                        except Exception as e:
+                            # 推理失败，记录错误信息
+                            logger.error(f"处理任务 {task.id} 时出错: {e}")
+                            self.queue.update_task_status(task.id, TaskStatus.FAILED, str(e))
+                    else:
+                        logger.warning(f"任务 {task_id} 未找到或无音频文件路径。")
+            # 如果等待超时（1秒），循环会继续并检查stop_event
 
 
     def quasi_streaming_process(self, audio_path, slice_duration=15):
@@ -167,3 +169,6 @@ class ASRWorker(threading.Thread):
     def stop(self):
         """设置事件，通知线程停止"""
         self.stop_event.set()
+        # 唤醒可能在等待任务的线程，使其能够快速检查停止条件
+        if hasattr(self.queue, '_task_available'):
+            self.queue._task_available.set()
