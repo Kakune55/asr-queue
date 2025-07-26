@@ -186,3 +186,8 @@ async def get_admin_dashboard():
     """提供一个简单的HTML页面作为管理后台"""
     # 直接返回静态文件
     return HTMLResponse(content=open("static/index.html", "r").read())
+
+@app.get("/history.html", response_class=HTMLResponse, tags=["Dashboard"])
+async def get_history_page():
+    """提供历史任务查看页面"""
+    return HTMLResponse(content=open("static/history.html", "r").read())

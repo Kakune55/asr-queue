@@ -328,3 +328,84 @@ class PriorityQueue:
             )
 
         return round(avg_waiting_time, 2), round(avg_load, 2)
+
+    def get_history_tasks(self, page: int = 1, page_size: int = 50, status_filter: Optional[str] = None) -> dict:
+        """获取历史任务列表，支持分页和状态过滤
+        :param page: 页码，从1开始
+        :param page_size: 每页任务数量
+        :param status_filter: 状态过滤，可选值：'completed', 'failed', 'all'
+        :return: 包含任务列表、总数等信息的字典
+        """
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # 构建查询条件
+        where_conditions = []
+        params = []
+        
+        if status_filter and status_filter != 'all':
+            if status_filter == 'completed':
+                where_conditions.append("status = ?")
+                params.append(TaskStatus.COMPLETED.value)
+            elif status_filter == 'failed':
+                where_conditions.append("status = ?")
+                params.append(TaskStatus.FAILED.value)
+        else:
+            # 默认显示已完成或失败的任务
+            where_conditions.append("status IN (?, ?)")
+            params.extend([TaskStatus.COMPLETED.value, TaskStatus.FAILED.value])
+        
+        where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
+        
+        # 查询总数
+        count_query = f"SELECT COUNT(*) FROM tasks {where_clause}"
+        cursor.execute(count_query, params)
+        total_count = cursor.fetchone()[0]
+        
+        # 查询数据
+        offset = (page - 1) * page_size
+        data_query = f"""
+            SELECT * FROM tasks {where_clause} 
+            ORDER BY updated_at DESC 
+            LIMIT ? OFFSET ?
+        """
+        cursor.execute(data_query, params + [page_size, offset])
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # 构建任务列表
+        tasks = []
+        for row in rows:
+            tasks.append(
+                Task(
+                    id=row["id"],
+                    audio_filepath=row["audio_filepath"],
+                    priority=row["priority"],
+                    status=TaskStatus(row["status"]),
+                    created_at=datetime.fromisoformat(row["created_at"]),
+                    updated_at=(
+                        datetime.fromisoformat(row["updated_at"])
+                        if row["updated_at"]
+                        else None
+                    ),
+                    result=row["result"],
+                    waiting_time=row["waiting_time"],
+                    processing_time=row["processing_time"] - row["waiting_time"] if row["processing_time"] and row["waiting_time"] else None,
+                )
+            )
+        
+        # 计算分页信息
+        total_pages = (total_count + page_size - 1) // page_size
+        has_next = page < total_pages
+        has_prev = page > 1
+        
+        return {
+            "tasks": tasks,
+            "total_count": total_count,
+            "total_pages": total_pages,
+            "current_page": page,
+            "page_size": page_size,
+            "has_next": has_next,
+            "has_prev": has_prev
+        }

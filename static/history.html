@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ASR服务 - 历史任务</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 20px;
+            background-color: #f7f7f7;
+            color: #333;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-btn {
+            background-color: #007aff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background-color: #0056d6;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 6px;
+        }
+
+        .controls label {
+            font-weight: 500;
+        }
+
+        .controls select, .controls input {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .refresh-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .refresh-btn:hover {
+            background-color: #218838;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f0f8ff;
+        }
+
+        .task-status {
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .details-button {
+            cursor: pointer;
+            color: #007aff;
+            text-decoration: underline;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        .details-button:hover {
+            color: #0056d6;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background-color: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background-color: #f0f0f0;
+        }
+
+        .pagination button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .pagination .current-page {
+            background-color: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #721c24;
+            background-color: #f8d7da;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        .task-id {
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .time-cell {
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                margin: 10px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .controls > div {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 6px 4px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>
+            历史任务记录
+            <a href="/" class="back-btn">返回仪表盘</a>
+        </h1>
+
+        <div class="controls">
+            <div>
+                <label for="status-filter">状态筛选:</label>
+                <select id="status-filter">
+                    <option value="all">全部</option>
+                    <option value="completed">已完成</option>
+                    <option value="failed">失败</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="page-size">每页显示:</label>
+                <select id="page-size">
+                    <option value="10">10条</option>
+                    <option value="20">20条</option>
+                    <option value="50" selected>50条</option>
+                    <option value="100">100条</option>
+                </select>
+            </div>
+            
+            <button class="refresh-btn" onclick="loadTasks()">刷新</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            正在加载任务数据...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="content" style="display: none;">
+            <div class="pagination-info">
+                <span id="pagination-info-text"></span>
+            </div>
+
+            <table id="tasks-table">
+                <thead>
+                    <tr>
+                        <th style="width: 120px;">任务ID</th>
+                        <th style="width: 60px;">优先级</th>
+                        <th style="width: 80px;">状态</th>
+                        <th style="width: 140px;">创建时间</th>
+                        <th style="width: 140px;">完成时间</th>
+                        <th style="width: 80px;">等待时间</th>
+                        <th style="width: 80px;">处理时间</th>
+                        <th>识别结果</th>
+                    </tr>
+                </thead>
+                <tbody id="tasks-tbody">
+                </tbody>
+            </table>
+
+            <div class="pagination" id="pagination">
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务详情模态框 -->
+    <div id="task-details-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>任务详情</h2>
+            <pre id="modal-task-details" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let currentStatus = 'all';
+        let currentPageSize = 50;
+        let currentData = null;
+
+        // 模态框控制
+        const modal = document.getElementById("task-details-modal");
+        const modalDetailsElement = document.getElementById("modal-task-details");
+        const closeModalSpan = document.getElementsByClassName("close")[0];
+
+        closeModalSpan.onclick = function () { modal.style.display = "none"; }
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // 格式化时间
+        function formatDateTime(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // 格式化时长
+        function formatDuration(seconds) {
+            if (seconds === null || seconds === undefined) return 'N/A';
+            if (seconds < 1) return `${(seconds * 1000).toFixed(0)}ms`;
+            return `${seconds.toFixed(2)}s`;
+        }
+
+        // 截取并格式化结果文本
+        function formatResult(result) {
+            if (!result) return 'N/A';
+            const maxLength = 100;
+            if (result.length > maxLength) {
+                return result.substring(0, maxLength) + '...';
+            }
+            return result;
+        }
+
+        // 获取任务详情
+        async function showTaskDetails(taskId) {
+            try {
+                const response = await fetch(`/api/task/${taskId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const taskDetails = await response.json();
+                modalDetailsElement.textContent = JSON.stringify(taskDetails, null, 2);
+                modal.style.display = "block";
+            } catch (error) {
+                console.error('获取任务详情失败:', error);
+                alert('获取任务详情失败: ' + error.message);
+            }
+        }
+
+        // 加载任务数据
+        async function loadTasks(page = 1) {
+            const loadingElement = document.getElementById('loading');
+            const errorElement = document.getElementById('error');
+            const contentElement = document.getElementById('content');
+
+            // 显示加载状态
+            loadingElement.style.display = 'block';
+            errorElement.style.display = 'none';
+            contentElement.style.display = 'none';
+
+            try {
+                const url = `/api/history?page=${page}&page_size=${currentPageSize}&status=${currentStatus}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                currentData = data;
+                currentPage = page;
+
+                // 渲染任务表格
+                renderTasksTable(data.tasks);
+                
+                // 渲染分页控件
+                renderPagination(data);
+                
+                // 更新分页信息
+                updatePaginationInfo(data);
+
+                // 显示内容
+                loadingElement.style.display = 'none';
+                contentElement.style.display = 'block';
+
+            } catch (error) {
+                console.error('加载任务失败:', error);
+                loadingElement.style.display = 'none';
+                errorElement.textContent = '加载任务失败: ' + error.message;
+                errorElement.style.display = 'block';
+            }
+        }
+
+        // 渲染任务表格
+        function renderTasksTable(tasks) {
+            const tbody = document.getElementById('tasks-tbody');
+            tbody.innerHTML = '';
+
+            if (tasks.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td colspan="8" style="text-align: center; color: #666;">暂无数据</td>';
+                tbody.appendChild(tr);
+                return;
+            }
+
+            tasks.forEach(task => {
+                const tr = document.createElement('tr');
+                
+                const statusClass = task.status === 'completed' ? 'status-completed' : 'status-failed';
+                const resultDisplay = formatResult(task.result || '');
+                
+                tr.innerHTML = `
+                    <td class="task-id">${task.id}</td>
+                    <td>${task.priority}</td>
+                    <td><span class="task-status ${statusClass}">${task.status === 'completed' ? '已完成' : '失败'}</span></td>
+                    <td class="time-cell">${formatDateTime(task.created_at)}</td>
+                    <td class="time-cell">${formatDateTime(task.updated_at)}</td>
+                    <td>${formatDuration(task.waiting_time)}</td>
+                    <td>${formatDuration(task.processing_time)}</td>
+                    <td><span class="details-button" onclick="showTaskDetails('${task.id}')">${resultDisplay}</span></td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 渲染分页控件
+        function renderPagination(data) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+
+            if (data.total_pages <= 1) return;
+
+            // 上一页按钮
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '上一页';
+            prevBtn.disabled = !data.has_prev;
+            prevBtn.onclick = () => loadTasks(currentPage - 1);
+            pagination.appendChild(prevBtn);
+
+            // 页码按钮
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(data.total_pages, currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => loadTasks(i);
+                
+                if (i === currentPage) {
+                    pageBtn.classList.add('current-page');
+                }
+                
+                pagination.appendChild(pageBtn);
+            }
+
+            // 下一页按钮
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '下一页';
+            nextBtn.disabled = !data.has_next;
+            nextBtn.onclick = () => loadTasks(currentPage + 1);
+            pagination.appendChild(nextBtn);
+        }
+
+        // 更新分页信息
+        function updatePaginationInfo(data) {
+            const infoElement = document.getElementById('pagination-info-text');
+            const start = (data.current_page - 1) * data.page_size + 1;
+            const end = Math.min(data.current_page * data.page_size, data.total_count);
+            infoElement.textContent = `显示第 ${start}-${end} 条，共 ${data.total_count} 条记录`;
+        }
+
+        // 事件监听器
+        document.getElementById('status-filter').addEventListener('change', function() {
+            currentStatus = this.value;
+            currentPage = 1;
+            loadTasks(1);
+        });
+
+        document.getElementById('page-size').addEventListener('change', function() {
+            currentPageSize = parseInt(this.value);
+            currentPage = 1;
+            loadTasks(1);
+        });
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTasks(1);
+        });
+    </script>
+</body>
+
+</html>
