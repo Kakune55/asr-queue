@@ -3,140 +3,8 @@
 
 <head>
     <title>ASR服务监控面板</title>
+    <link rel="stylesheet" href="/static/css/common.css">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            margin: 20px; /* 减小外边距 */
-            background-color: #f7f7f7;
-            color: #333;
-        }
-
-        #dashboard {
-            background-color: #fff;
-            padding: 15px; /* 减小内边距 */
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        h1,
-        h2,
-        h3 { /* 统一调整标题间距 */
-            color: #1a1a1a;
-            margin-top: 15px;
-            margin-bottom: 10px;
-        }
-
-        #queue-size {
-            color: #007aff;
-            font-size: 1.5em;
-        }
-
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        li {
-            background-color: #f0f0f0;
-            margin-top: 5px;
-            padding: 8px 15px;
-            border-radius: 4px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        .task-item { /* 移除Flexbox相关样式，但保留一些通用样式 */
-            border-bottom: none; /* 表格有边框，不需要单独的底部边框 */
-            padding-bottom: 0;
-            margin-bottom: 0;
-        }
-        .task-item:last-child { border-bottom: none; } /* 确保没有额外的边框 */
-
-        .task-item:last-child {
-            border-bottom: none;
-        }
-
-        .task-status {
-            font-weight: bold;
-        }
-
-        .status-completed {
-            color: green;
-        }
-
-        .status-failed {
-            color: red;
-        }
-
-        .status-pending {
-            color: orange;
-        }
-
-        .status-processing {
-            color: blue;
-        }
-
-        .details-button {
-            cursor: pointer;
-            color: #007aff;
-            text-decoration: underline;
-        }
-
-        /* 模态框样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            border-radius: 8px;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
         /* 设备信息样式 */
         .device-badge {
             display: inline-flex;
@@ -164,7 +32,7 @@
             background: linear-gradient(135deg, #76b900 0%, #5a9216 100%);
         }
 
-        /* Intel CPU徽章样式 */  
+        /* Intel CPU徽章样式 */
         .device-badge.cpu, .device-badge.intel_cpu {
             background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
         }
@@ -179,32 +47,71 @@
             display: flex;
             align-items: center;
             margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        /* 统计卡片样式 */
+        .statistics {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 200px;
+        }
+
+        /* 配置区域样式 */
+        #config-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        #config-section label {
+            white-space: nowrap;
+        }
+
+        #max-queue-size {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #config-message {
+            flex-basis: 100%;
+            margin-top: 10px;
+        }
+
+        /* 队列大小样式 */
+        #queue-size {
+            color: var(--primary-color);
+            font-size: 1.5em;
+            font-weight: bold;
         }
     </style>
 </head>
 
+
 <body>
-    <div id="dashboard">
+    <div id="dashboard" class="container">
         <div class="title-container">
             <h1>ASR服务监控面板</h1>
             <!-- 设备信息徽章 -->
             <div id="device-badge" class="device-badge">
                 <span id="device-badge-text">检测中...</span>
             </div>
-        </div>
-        
-        <!-- 操作按钮区域 -->
-        <div style="margin-bottom: 20px;">
-            <a href="/history.html" style="
-                background-color: #6c757d;
-                color: white;
-                padding: 10px 20px;
-                text-decoration: none;
-                border-radius: 6px;
-                font-size: 14px;
-                display: inline-block;
-                transition: background-color 0.2s ease;
-            " onmouseover="this.style.backgroundColor='#5a6268'" onmouseout="this.style.backgroundColor='#6c757d'">
+            <!-- 操作按钮区域 -->
+            <a href="/history.html" class="btn btn-secondary" style="margin-left: auto;">
                 📋 查看历史任务
             </a>
         </div>
@@ -216,31 +123,30 @@
         <div id="config-section">
             <label for="max-queue-size">队列最大容量:</label>
             <input type="number" id="max-queue-size" min="1" value="10">
-            <button id="update-config-btn">更新配置</button>
+            <button id="update-config-btn" class="btn btn-primary">更新配置</button>
             <p id="config-message" style="display: none;"></p>
         </div>
         
         <h2>系统统计</h2>
-        <div id="statistics" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-            <div class="stat-card" style="flex: 1; background: #f0f0f0; padding: 15px; margin: 0 5px; border-radius: 8px; text-align: center;">
+        <div id="statistics" class="statistics">
+            <div class="stat-card">
                 <h3>最近5分钟</h3>
                 <p>平均等待: <span id="wait-5">0.00s</span></p>
                 <p>平均负载: <span id="load-5">0%</span></p>
             </div>
-            <div class="stat-card" style="flex: 1; background: #f0f0f0; padding: 15px; margin: 0 5px; border-radius: 8px; text-align: center;">
+            <div class="stat-card">
                 <h3>最近15分钟</h3>
                 <p>平均等待: <span id="wait-15">0.00s</span></p>
                 <p>平均负载: <span id="load-15">0%</span></p>
             </div>
-            <div class="stat-card" style="flex: 1; background: #f0f0f0; padding: 15px; margin: 0 5px; border-radius: 8px; text-align: center;">
+            <div class="stat-card">
                 <h3>最近45分钟</h3>
                 <p>平均等待: <span id="wait-45">0.00s</span></p>
                 <p>平均负载: <span id="load-45">0%</span></p>
             </div>
         </div>
-        
         <h3>待处理任务列表</h3>
-        <table id="pending-tasks">
+        <table id="pending-tasks" class="table">
             <thead>
                 <tr>
                     <th>任务ID</th>
@@ -251,7 +157,7 @@
         </table>
 
         <h2>正在处理中的任务</h2>
-        <table id="processing-tasks">
+        <table id="processing-tasks" class="table">
             <thead>
                 <tr>
                     <th>任务ID</th>
@@ -266,7 +172,7 @@
         </table>
 
         <h2>最近处理任务</h2>
-        <table id="recent-tasks">
+        <table id="recent-tasks" class="table">
             <thead>
                 <tr>
                     <th>任务ID</th>
@@ -284,8 +190,10 @@
     <!-- 任务详情模态框 -->
     <div id="task-details-modal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>任务详情</h2>
+            <div class="modal-header">
+                <h2 class="modal-title">任务详情</h2>
+                <button class="close">&times;</button>
+            </div>
             <pre id="modal-task-details" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
         </div>
     </div>
@@ -348,10 +256,10 @@
         const recentTasksListElement = document.getElementById("recent-tasks");
         const modal = document.getElementById("task-details-modal");
         const modalDetailsElement = document.getElementById("modal-task-details");
-        const closeModalSpan = document.getElementsByClassName("close")[0];
+        const closeModalButton = document.querySelector(".modal .close");
 
         // 关闭模态框
-        closeModalSpan.onclick = function () { modal.style.display = "none"; }
+        closeModalButton.onclick = function () { modal.style.display = "none"; }
         window.onclick = function (event) {
             if (event.target == modal) {
                 modal.style.display = "none";
@@ -389,7 +297,7 @@
                 tr.innerHTML = `
                     <td>${task.id}</td>
                     <td>${task.priority}</td>
-                    <td><span class="task-status ${statusClass}">${task.status}</span></td>
+                    <td><span class="task-status ${statusClass}">处理中</span></td>
                     <td>${task.waiting_time ? task.waiting_time.toFixed(2) + 's' : 'N/A'}</td>
                     <td>${task.processing_time ? task.processing_time.toFixed(2) + 's' : 'N/A'}</td>
                     <td>${task.result_display || 'N/A'}</td>
@@ -410,7 +318,7 @@
                 tr.innerHTML = `
                     <td>${task.id}</td>
                     <td>${task.priority}</td>
-                    <td><span class="task-status ${statusClass}">${task.status}</span></td>
+                    <td><span class="task-status ${statusClass}">${task.status === 'completed' ? '已完成' : task.status === 'failed' ? '失败' : task.status === 'pending' ? '待处理' : '处理中'}</span></td>
                     <td>${task.waiting_time ? task.waiting_time.toFixed(2) + 's' : 'N/A'}</td>
                     <td>${task.processing_time ? task.processing_time.toFixed(2) + 's' : 'N/A'}</td>
                     <td><span class="details-button" data-task-id="${task.id}">${task.result_display}</span></td>

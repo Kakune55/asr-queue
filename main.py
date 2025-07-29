@@ -98,7 +98,7 @@ async def broadcast_queue_status():
             result_display = "N/A"
             if task.result:
                 if task.status == TaskStatus.COMPLETED:
-                    result_display = "点击查看详情"
+                    result_display = "详情"
                 elif task.status == TaskStatus.FAILED:
                      result_display = "失败，点击查看详情"
 

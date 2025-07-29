@@ -1,0 +1,380 @@
+/* 公共样式 */
+:root {
+  --primary-color: #007aff;
+  --primary-hover: #0056d6;
+  --success-color: #28a745;
+  --success-hover: #218838;
+  --danger-color: #dc3545;
+  --danger-hover: #c82333;
+  --warning-color: #ffc107;
+  --info-color: #17a2b8;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+  --gray-color: #6c757d;
+  --gray-hover: #5a6268;
+  --white-color: #ffffff;
+  --border-color: #ddd;
+  --background-color: #f7f7f7;
+  --card-background: #ffffff;
+  --text-color: #333;
+  --text-muted: #666;
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --border-radius: 8px;
+  --border-radius-sm: 4px;
+  --transition: all 0.2s ease;
+}
+
+/* 基础样式重置 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+/* 容器样式 */
+.container {
+  background-color: var(--card-background);
+  padding: 20px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+/* 标题样式 */
+h1, h2, h3 {
+  color: var(--dark-color);
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+h2 {
+  font-size: 1.5rem;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+h3 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+/* 按钮样式 */
+.btn {
+  display: inline-block;
+  font-weight: 400;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+  border: 1px solid transparent;
+  padding: 8px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: var(--border-radius-sm);
+  transition: var(--transition);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: var(--white-color);
+  border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  color: var(--white-color);
+  border-color: var(--success-color);
+}
+
+.btn-success:hover {
+  background-color: var(--success-hover);
+  border-color: var(--success-hover);
+}
+
+.btn-secondary {
+  background-color: var(--gray-color);
+  color: var(--white-color);
+  border-color: var(--gray-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--gray-hover);
+  border-color: var(--gray-hover);
+}
+
+/* 表格样式 */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  background-color: var(--card-background);
+}
+
+.table th,
+.table td {
+  border: 1px solid var(--border-color);
+  padding: 12px 8px;
+  text-align: left;
+}
+
+.table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+}
+
+.table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.table tr:hover {
+  background-color: #f0f8ff;
+}
+
+/* 任务状态样式 */
+.task-status {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: 12px;
+  display: inline-block;
+  text-align: center;
+  min-width: 60px;
+}
+
+.status-completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-failed {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-processing {
+  background-color: #cce5ff;
+  color: #004085;
+}
+
+/* 模态框样式 */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+  background-color: var(--card-background);
+  margin: 5% auto;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  width: 90%;
+  max-width: 800px;
+  border-radius: var(--border-radius);
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.close {
+  color: var(--text-muted);
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.close:hover,
+.close:focus {
+  color: var(--dark-color);
+  text-decoration: none;
+}
+
+/* 加载和错误状态 */
+.loading,
+.error {
+  text-align: center;
+  padding: 40px;
+  border-radius: var(--border-radius-sm);
+}
+
+.loading {
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--danger-color);
+  background-color: #f8d7da;
+}
+
+/* 分页样式 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.pagination button {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-background);
+    color: var(--text-color);
+    cursor: pointer;
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    transition: all 0.2s ease;
+    min-width: 36px;
+}
+
+.pagination button:hover:not(:disabled) {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.pagination button:disabled {
+    background-color: #f5f5f5;
+    color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.pagination .current-page {
+    background-color: var(--primary-color);
+    color: var(--white-color);
+    border-color: var(--primary-color);
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0, 122, 255, 0.3);
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 15px 0;
+    text-align: center;
+}
+
+.pagination .pagination-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 5px;
+    color: var(--text-muted);
+}
+
+.pagination .pagination-jump {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 15px;
+}
+
+.pagination .pagination-jump input {
+    width: 60px;
+    text-align: center;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.pagination .pagination-jump button {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.pagination .pagination-jump input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+  
+  .container {
+    padding: 15px;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+  }
+  
+  h2 {
+    font-size: 1.3rem;
+  }
+  
+  .table {
+    font-size: 12px;
+  }
+  
+  .table th,
+  .table td {
+    padding: 6px 4px;
+  }
+  
+  .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    padding: 15px;
+  }
+}

@@ -3,42 +3,21 @@
 
 <head>
     <title>ASR服务 - 历史任务</title>
+    <link rel="stylesheet" href="/static/css/common.css">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            margin: 20px;
-            background-color: #f7f7f7;
-            color: #333;
-        }
-
         .container {
-            background-color: #fff;
+            background-color: var(--card-background);
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
         }
 
-        h1 {
-            color: #1a1a1a;
-            margin-bottom: 20px;
+        /* 标题容器 */
+        .title-container {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-        }
-
-        .back-btn {
-            background-color: #007aff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .back-btn:hover {
-            background-color: #0056d6;
+            margin-bottom: 20px;
+            gap: 15px;
         }
 
         .controls {
@@ -48,182 +27,20 @@
             margin-bottom: 20px;
             padding: 15px;
             background-color: #f8f8f8;
-            border-radius: 6px;
+            border-radius: var(--border-radius-sm);
+            flex-wrap: wrap;
         }
 
-        .controls label {
-            font-weight: 500;
-        }
-
-        .controls select, .controls input {
-            padding: 6px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .refresh-btn {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .refresh-btn:hover {
-            background-color: #218838;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 12px 8px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        tr:hover {
-            background-color: #f0f8ff;
-        }
-
-        .task-status {
-            font-weight: bold;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-
-        .status-completed {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .status-failed {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
-        .details-button {
-            cursor: pointer;
-            color: #007aff;
-            text-decoration: underline;
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            display: inline-block;
-        }
-
-        .details-button:hover {
-            color: #0056d6;
-        }
-
-        .pagination {
+        .controls > div {
             display: flex;
-            justify-content: center;
             align-items: center;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 5px;
         }
 
-        .pagination button {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            background-color: white;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        .pagination button:hover:not(:disabled) {
-            background-color: #f0f0f0;
-        }
-
-        .pagination button:disabled {
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
-
-        .pagination .current-page {
-            background-color: #007aff;
-            color: white;
-            border-color: #007aff;
-        }
-
-        .pagination-info {
-            font-size: 14px;
-            color: #666;
-            margin: 10px 0;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .error {
-            text-align: center;
-            padding: 40px;
-            color: #721c24;
-            background-color: #f8d7da;
-            border-radius: 4px;
-            margin: 20px 0;
-        }
-
-        /* 模态框样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 5% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 90%;
-            max-width: 800px;
-            border-radius: 8px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
+        .controls select {
+            padding: 5px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
         }
 
         .task-id {
@@ -236,11 +53,22 @@
             white-space: nowrap;
         }
 
+        .details-button {
+            cursor: pointer;
+            color: var(--primary-color);
+            text-decoration: underline;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        .details-button:hover {
+            color: var(--primary-hover);
+        }
+
         @media (max-width: 768px) {
-            body {
-                margin: 10px;
-            }
-            
             .controls {
                 flex-direction: column;
                 align-items: stretch;
@@ -252,24 +80,16 @@
                 justify-content: space-between;
                 align-items: center;
             }
-            
-            table {
-                font-size: 12px;
-            }
-            
-            th, td {
-                padding: 6px 4px;
-            }
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>
-            历史任务记录
-            <a href="/" class="back-btn">返回仪表盘</a>
-        </h1>
+        <div class="title-container">
+            <h1>历史任务记录</h1>
+            <a href="/" class="btn btn-secondary" style="margin-left: auto;">返回仪表盘</a>
+        </div>
 
         <div class="controls">
             <div>
@@ -291,7 +111,7 @@
                 </select>
             </div>
             
-            <button class="refresh-btn" onclick="loadTasks()">刷新</button>
+            <button class="btn btn-success" onclick="loadTasks()">刷新</button>
         </div>
 
         <div id="loading" class="loading" style="display: none;">
@@ -305,7 +125,7 @@
                 <span id="pagination-info-text"></span>
             </div>
 
-            <table id="tasks-table">
+            <table id="tasks-table" class="table">
                 <thead>
                     <tr>
                         <th style="width: 120px;">任务ID</th>
@@ -330,8 +150,10 @@
     <!-- 任务详情模态框 -->
     <div id="task-details-modal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>任务详情</h2>
+            <div class="modal-header">
+                <h2 class="modal-title">任务详情</h2>
+                <button class="close">&times;</button>
+            </div>
             <pre id="modal-task-details" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
         </div>
     </div>
@@ -345,9 +167,9 @@
         // 模态框控制
         const modal = document.getElementById("task-details-modal");
         const modalDetailsElement = document.getElementById("modal-task-details");
-        const closeModalSpan = document.getElementsByClassName("close")[0];
+        const closeModalButton = document.querySelector(".modal .close");
 
-        closeModalSpan.onclick = function () { modal.style.display = "none"; }
+        closeModalButton.onclick = function () { modal.style.display = "none"; }
         window.onclick = function (event) {
             if (event.target == modal) {
                 modal.style.display = "none";
@@ -483,7 +305,15 @@
             const pagination = document.getElementById('pagination');
             pagination.innerHTML = '';
 
-            if (data.total_pages <= 1) return;
+            const totalPages = data.total_pages;
+            if (totalPages <= 1) return;
+
+            // 首页按钮
+            const firstBtn = document.createElement('button');
+            firstBtn.textContent = '首页';
+            firstBtn.onclick = () => loadTasks(1);
+            firstBtn.disabled = currentPage === 1;
+            pagination.appendChild(firstBtn);
 
             // 上一页按钮
             const prevBtn = document.createElement('button');
@@ -492,20 +322,36 @@
             prevBtn.onclick = () => loadTasks(currentPage - 1);
             pagination.appendChild(prevBtn);
 
+            // ... 省略号
+            if (currentPage > 3) {
+                const ellipsis = document.createElement('span');
+                ellipsis.textContent = '...';
+                ellipsis.className = 'pagination-ellipsis';
+                pagination.appendChild(ellipsis);
+            }
+
             // 页码按钮
             const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(data.total_pages, currentPage + 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
 
             for (let i = startPage; i <= endPage; i++) {
                 const pageBtn = document.createElement('button');
                 pageBtn.textContent = i;
                 pageBtn.onclick = () => loadTasks(i);
-                
+
                 if (i === currentPage) {
                     pageBtn.classList.add('current-page');
                 }
-                
+
                 pagination.appendChild(pageBtn);
+            }
+            
+            // ... 省略号
+            if (currentPage < totalPages - 2) {
+                const ellipsis = document.createElement('span');
+                ellipsis.textContent = '...';
+                ellipsis.className = 'pagination-ellipsis';
+                pagination.appendChild(ellipsis);
             }
 
             // 下一页按钮
@@ -514,6 +360,55 @@
             nextBtn.disabled = !data.has_next;
             nextBtn.onclick = () => loadTasks(currentPage + 1);
             pagination.appendChild(nextBtn);
+            
+            // 尾页按钮
+            const lastBtn = document.createElement('button');
+            lastBtn.textContent = '尾页';
+            lastBtn.onclick = () => loadTasks(totalPages);
+            lastBtn.disabled = currentPage === totalPages;
+            pagination.appendChild(lastBtn);
+
+            // 跳转区域
+            const jumpContainer = document.createElement('div');
+            jumpContainer.className = 'pagination-jump';
+
+            const jumpInput = document.createElement('input');
+            jumpInput.type = 'number';
+            jumpInput.id = 'jump-to-page';
+            jumpInput.min = '1';
+            jumpInput.max = totalPages;
+            jumpInput.value = currentPage;
+
+            const jumpButton = document.createElement('button');
+            jumpButton.textContent = '跳转';
+            jumpButton.onclick = () => {
+                const page = parseInt(jumpInput.value);
+                if (page >= 1 && page <= totalPages) {
+                    loadTasks(page);
+                } else {
+                    alert(`请输入 1 到 ${totalPages} 之间的有效页码`);
+                }
+            };
+            
+            jumpInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    jumpButton.click();
+                }
+            });
+
+            const textBefore = document.createElement('span');
+            textBefore.textContent = '跳转到';
+            jumpContainer.appendChild(textBefore);
+
+            jumpContainer.appendChild(jumpInput);
+
+            const textAfter = document.createElement('span');
+            textAfter.textContent = '页';
+            jumpContainer.appendChild(textAfter);
+            
+            jumpContainer.appendChild(jumpButton);
+            
+            pagination.appendChild(jumpContainer);
         }
 
         // 更新分页信息
