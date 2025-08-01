@@ -3,6 +3,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import asyncio
+import torch  # 用于检测GPU数量
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles # 导入StaticFiles
@@ -34,8 +35,30 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # --- 单例模式管理核心组件 ---
 # 创建一个全局唯一的任务队列实例
 asr_queue = PriorityQueue()
-# 创建一个全局唯一的ASR工作者实例
-asr_worker = ASRWorker(asr_queue, device="auto")
+# 导入配置
+from config import config
+# 检测可用的GPU数量，如果没有GPU则使用CPU
+if config.force_cpu:
+    gpu_count = 0
+    logger.info("强制使用CPU模式，忽略可用的GPU")
+else:
+    gpu_count = torch.cuda.device_count() if torch.cuda.is_available() else 0
+    logger.info(f"检测到 {gpu_count} 个GPU")
+
+# 创建多个ASR工作者实例以支持多卡调度
+asr_workers = []
+if gpu_count > 0:
+    # 为每个GPU创建一个工作者实例
+    for i in range(gpu_count):
+        worker = ASRWorker(asr_queue, device=f"cuda:{i}")
+        asr_workers.append(worker)
+else:
+    # 如果没有GPU，创建一个使用CPU的工作者实例
+    worker = ASRWorker(asr_queue, device="cpu")
+    asr_workers.append(worker)
+
+# 为了保持向后兼容性，仍然提供单个worker的引用
+asr_worker = asr_workers[0]
 
 # --- 依赖注入 ---
 # 定义一个函数，用于在请求处理时获取队列实例
@@ -163,22 +186,26 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.on_event("startup")
 async def startup_event():
     """应用启动时执行"""
-    # 启动ASR工作者线程
-    asr_worker.start()
-    app.state.worker = asr_worker
+    # 启动所有ASR工作者线程
+    for i, worker in enumerate(asr_workers):
+        worker.start()
+        logger.info(f"ASR Worker {i} (设备: {worker.device}) 已启动")
+    app.state.workers = asr_workers
     # 在后台启动一个任务，用于定期广播队列状态
     asyncio.create_task(broadcast_queue_status())
     # 在后台启动数据库清理调度器
     asyncio.create_task(run_cleanup_scheduler())
-    logger.info("ASR Worker and cleanup scheduler have been started.")
+    logger.info(f"已启动 {len(asr_workers)} 个ASR Worker和清理调度器。")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭时执行"""
-    # 停止ASR工作者线程
-    app.state.worker.stop()
-    app.state.worker.join()
-    logger.info("ASR Worker has been stopped.")
+    # 停止所有ASR工作者线程
+    for i, worker in enumerate(app.state.workers):
+        worker.stop()
+        worker.join()
+        logger.info(f"ASR Worker {i} 已停止")
+    logger.info("所有ASR Worker均已停止。")
 
 # --- 管理后台HTML页面 ---
 @app.get("/", response_class=HTMLResponse, tags=["Dashboard"])

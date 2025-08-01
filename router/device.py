@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from uvicorn.server import logger
+from config import config
 
 router = APIRouter()
 
@@ -33,16 +34,24 @@ def get_device_info(worker=Depends(get_asr_worker)):
             # 如果明确指定了设备，使用指定的设备
             actual_device = configured_device
         
-        if actual_device == "cuda":
+        # 检查是否使用GPU设备（包括"cuda"和"cuda:0"、"cuda:1"等格式）
+        if actual_device.startswith("cuda"):
             # GPU信息
             try:
-                gpu_name = torch.cuda.get_device_name(0)
-                gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)  # 转换为GB
+                # 解析设备ID，如果是"cuda:0"格式，则提取ID部分
+                if ":" in actual_device:
+                    device_id = int(actual_device.split(":")[1])
+                else:
+                    # 如果是"cuda"格式，默认使用设备0
+                    device_id = 0
+                
+                gpu_name = torch.cuda.get_device_name(device_id)
+                gpu_memory = torch.cuda.get_device_properties(device_id).total_memory / (1024**3)  # 转换为GB
                 device_info = f"{gpu_name} ({gpu_memory:.1f}GB)"
                 device_type_str = "GPU"
-            except:
+            except Exception as e:
                 # 如果获取GPU信息失败，可能是配置错误
-                device_info = "GPU配置错误"
+                device_info = f"GPU配置错误: {str(e)}"
                 device_type_str = "GPU"
         else:
             # CPU信息
@@ -76,11 +85,17 @@ def get_device_info(worker=Depends(get_asr_worker)):
         if configured_device != "auto":
             device_info += f" {config_info}"
         
+        # 添加force_cpu配置状态
+        additional_info = {}
+        if config.force_cpu:
+            additional_info["force_cpu"] = True
+        
         return {
             "device_type": device_type_str,
             "device_info": device_info,
             "configured_device": configured_device,
-            "actual_device": actual_device
+            "actual_device": actual_device,
+            "additional_info": additional_info
         }
         
     except Exception as e:

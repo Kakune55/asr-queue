@@ -23,7 +23,7 @@ def quasi_streaming_recognition(audio_path, model=None, slice_duration=15, devic
         audio_path (str): 音频文件路径
         model (AutoModel, optional): 预加载的模型实例
         slice_duration (int): 每片音频的时长（秒）
-        device (str): 设备类型 ("cuda:0" 或 "cpu")
+        device (str): 设备类型 ("cuda:0", "cuda:1" 或 "cpu")
         
     Yields:
         str: 每个片段的识别文本
@@ -84,13 +84,13 @@ class ASRWorker(threading.Thread):
 
     def run(self):
         """线程的主执行逻辑"""
-        logger.info("正在初始化ASR模型...")
+        logger.info(f"正在初始化ASR模型，设备: {self.device}...")
         # 加载FunASR模型
         if self.device == "auto":
-            device = "cuda" if torch.cuda.is_available() else "cpu" # 自动检测设备
+            device = "cuda:0" if torch.cuda.is_available() else "cpu" # 自动检测设备，优先使用cuda:0
         else:
             device = self.device
-        logger.info(f"使用设备: {device}")
+        logger.info(f"模型将加载到设备: {device}")
         self.model = AutoModel(
             model=self.model_path,
             vad_model="fsmn-vad",
@@ -98,7 +98,7 @@ class ASRWorker(threading.Thread):
             device=device,
             runtime="onnx", # 使用ONNX Runtime以获得更好的性能
         )
-        logger.info("ASR模型初始化完成。")
+        logger.info(f"ASR模型初始化完成，使用的设备: {device}。")
 
         # 循环，直到stop_event被设置
         while not self.stop_event.is_set():

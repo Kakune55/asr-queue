@@ -221,7 +221,9 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ max_queue_size: parseInt(maxQueueSize) })
+                    body: JSON.stringify({
+                        max_queue_size: parseInt(maxQueueSize)
+                    })
                 });
                 
                 if (response.ok) {
@@ -385,10 +387,14 @@
                     return;
                 }
                 
-                // 直接显示完整的设备信息
-                deviceBadgeTextElement.textContent = deviceInfo.device_info;
+                // 构建设备信息文本
+                let deviceText = deviceInfo.device_info;
+                
+                // 显示设备信息
+                deviceBadgeTextElement.textContent = deviceText;
                 
                 // 根据设备类型设置徽章样式
+                // 即使在强制CPU模式下，如果实际使用的是GPU，仍然显示GPU样式
                 if (deviceInfo.device_type === 'GPU') {
                     deviceBadgeElement.className = 'device-badge gpu';
                 } else if (deviceInfo.device_type === 'AMD_CPU') {

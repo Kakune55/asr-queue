@@ -196,17 +196,18 @@ async def get_task_details(
     return task # 直接返回Task对象，FastAPI会自动序列化为JSON
 
 @router.get("/statistics", summary="获取系统统计信息")
-async def get_statistics(asr_queue: PriorityQueue = Depends(get_queue)):
+async def get_statistics(request: Request, asr_queue: PriorityQueue = Depends(get_queue)):
     """获取最近5/15/45分钟的平均等待时间和负载统计"""
     stats = {}
     intervals = [5, 15, 45]
-    # 当前系统工作线程数量（根据main.py中只启动了一个worker）
-    worker_count = 1
+    # 从应用状态中获取实际的工作线程数量
+    worker_count = len(request.app.state.workers) if hasattr(request.app.state, 'workers') else 1
     for interval in intervals:
         avg_waiting, avg_load = asr_queue.calculate_statistics(interval, worker_count)
         stats[f"last_{interval}_min"] = {
             "avg_waiting_time": avg_waiting,
-            "avg_load_percent": avg_load
+            "avg_load_percent": avg_load,
+            "worker_count": worker_count
         }
     return stats
 
@@ -252,6 +253,6 @@ async def update_config(new_config: SystemConfig):
     例如，可以用来调整队列的最大容量。
     """
     config.max_queue_size = new_config.max_queue_size
-    logger.info(f"队列最大容量已更新为: {config.max_queue_size}")
+    logger.info(f"系统配置已更新 - 队列最大容量: {config.max_queue_size}")
     return config
 
