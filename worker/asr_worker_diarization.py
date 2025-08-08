@@ -91,12 +91,22 @@ class ASRWorker(threading.Thread):
         else:
             device = self.device
         logger.info(f"模型将加载到设备: {device}")
+        # self.model = AutoModel(
+        #     model=self.model_path,
+        #     vad_model="fsmn-vad",
+        #     vad_kwargs={"max_single_segment_time": 30000},
+        #     spk_model="cam++",
+        #     device=device,
+        #     runtime="onnx", # 使用ONNX Runtime以获得更好的性能
+        # )
         self.model = AutoModel(
-            model=self.model_path,
+            model="paraformer-zh",
             vad_model="fsmn-vad",
             vad_kwargs={"max_single_segment_time": 30000},
+            punc_model="ct-punc-c",
+            spk_model="cam++",
             device=device,
-            runtime="onnx", # 使用ONNX Runtime以获得更好的性能
+            runtime="onnx",
         )
         logger.info(f"ASR模型初始化完成，使用的设备: {device}。")
 
@@ -132,7 +142,10 @@ class ASRWorker(threading.Thread):
                             )
 
                             # 使用富文本后处理，将标签转换为emoji格式
-                            processed_text = rich_transcription_postprocess(res[0]["text"])
+                            # processed_text = rich_transcription_postprocess(res[0]["text"])
+                            processed_text = ""
+                            for i in merge_by_speaker(load_json(str(res))):
+                                processed_text += i + "\n"
                             # 推理成功，更新任务状态和结果
                             self.queue.update_task_status(task.id, TaskStatus.COMPLETED, processed_text)
                             logger.info(f"任务 {task.id} 已完成。")
@@ -145,28 +158,28 @@ class ASRWorker(threading.Thread):
             # 如果等待超时（1秒），循环会继续并检查stop_event
 
 
-    def quasi_streaming_process(self, audio_path, slice_duration=15):
-        """
-        使用准流式识别处理音频文件
+    # def quasi_streaming_process(self, audio_path, slice_duration=15):
+    #     """
+    #     使用准流式识别处理音频文件
         
-        Args:
-            audio_path (str): 音频文件路径
-            slice_duration (int): 每片音频的时长（秒）
+    #     Args:
+    #         audio_path (str): 音频文件路径
+    #         slice_duration (int): 每片音频的时长（秒）
             
-        Yields:
-            str: 每个片段的识别文本
-        """
-        # 使用当前worker的模型和设备配置
-        device = self.device if self.device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu")
+    #     Yields:
+    #         str: 每个片段的识别文本
+    #     """
+    #     # 使用当前worker的模型和设备配置
+    #     device = self.device if self.device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu")
         
-        # 调用准流式识别函数
-        for text in quasi_streaming_recognition(
-            audio_path,
-            model=self.model,
-            slice_duration=slice_duration,
-            device=device
-        ):
-            yield text
+    #     # 调用准流式识别函数
+    #     for text in quasi_streaming_recognition(
+    #         audio_path,
+    #         model=self.model,
+    #         slice_duration=slice_duration,
+    #         device=device
+    #     ):
+    #         yield text
 
     def stop(self):
         """设置事件，通知线程停止"""
