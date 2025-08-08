@@ -13,7 +13,7 @@ from funasr.utils.postprocess_utils import rich_transcription_postprocess
 from task_queue.priority_queue import PriorityQueue, AUDIO_STORAGE_DIR
 from models import TaskStatus, Task # 导入Task模型
 from uvicorn.server import logger
-import uuid
+from util.res_format import merge_by_speaker, load_json
 
 def quasi_streaming_recognition(audio_path, model=None, slice_duration=15, device="cuda:0"):
     """
@@ -91,12 +91,22 @@ class ASRWorker(threading.Thread):
         else:
             device = self.device
         logger.info(f"模型将加载到设备: {device}")
+        # self.model = AutoModel(
+        #     model=self.model_path,
+        #     vad_model="fsmn-vad",
+        #     vad_kwargs={"max_single_segment_time": 30000},
+        #     spk_model="cam++",
+        #     device=device,
+        #     runtime="onnx", # 使用ONNX Runtime以获得更好的性能
+        # )
         self.model = AutoModel(
-            model=self.model_path,
+            model="paraformer-zh",
             vad_model="fsmn-vad",
             vad_kwargs={"max_single_segment_time": 30000},
+            punc_model="ct-punc-c",
+            spk_model="cam++",
             device=device,
-            runtime="onnx", # 使用ONNX Runtime以获得更好的性能
+            runtime="onnx",
         )
         logger.info(f"ASR模型初始化完成，使用的设备: {device}。")
 
@@ -128,9 +138,14 @@ class ASRWorker(threading.Thread):
                                 use_itn=True,
                                 merge_vad=True,
                                 merge_length_s=15,
+                                preset_spk_num=2
                             )
+
                             # 使用富文本后处理，将标签转换为emoji格式
-                            processed_text = rich_transcription_postprocess(res[0]["text"])
+                            # processed_text = rich_transcription_postprocess(res[0]["text"])
+                            processed_text = ""
+                            for i in merge_by_speaker(load_json(str(res))):
+                                processed_text += i + "\n"
                             # 推理成功，更新任务状态和结果
                             self.queue.update_task_status(task.id, TaskStatus.COMPLETED, processed_text)
                             logger.info(f"任务 {task.id} 已完成。")

@@ -215,7 +215,13 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const taskDetails = await response.json();
-                modalDetailsElement.textContent = JSON.stringify(taskDetails, null, 2);
+                // 将 JSON 字符串中的转义字符转换为实际字符
+                const jsonString = JSON.stringify(taskDetails, null, 2);
+                const processedString = jsonString
+                    .replace(/\\n/g, '\n')      // 换行符
+                    .replace(/\\t/g, '\t')      // 制表符
+                    .replace(/\\r/g, '\r');     // 回车符
+                modalDetailsElement.textContent = processedString;
                 modal.style.display = "block";
             } catch (error) {
                 console.error('获取任务详情失败:', error);
